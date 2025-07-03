@@ -1,26 +1,190 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Clean Cosmic Color Palette */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base Colors - Much cleaner and higher contrast */
+  --cosmic-dark: #0a0f1c;
+  --cosmic-slate: #1a1f2e;
+  --cosmic-light: #f8fafc;
+  --cosmic-gray: #64748b;
+
+  /* Accent Colors - More vibrant and crisp */
+  --electric-blue: #0ea5e9;
+  --purple-magic: #8b5cf6;
+  --success-green: #22c55e;
+  --warning-orange: #f97316;
+
+  /* Clean Gradients */
+  --cosmic-gradient: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 100%);
+  --magic-gradient: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%);
+  --hero-gradient: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 70%, #0f172a 100%);
+
+  /* Subtle Effects */
+  --magic-glow: 0 0 30px rgba(14, 165, 233, 0.4);
+  --purple-glow: 0 0 30px rgba(139, 92, 246, 0.4);
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  /* Typography */
+  --font-inter: var(--font-inter);
+  --font-geist-mono: var(--font-geist-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--hero-gradient);
+  color: var(--cosmic-light);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fix contrast for light backgrounds */
+.bg-white,
+.bg-gray-50,
+.bg-gray-100,
+.bg-slate-50,
+.bg-blue-50,
+.bg-purple-50,
+.bg-green-50,
+.bg-red-50,
+.bg-yellow-50,
+.bg-indigo-50,
+.bg-pink-50,
+.bg-emerald-50,
+.bg-orange-50,
+.bg-cyan-50,
+.bg-teal-50,
+.bg-lime-50,
+.bg-amber-50,
+.bg-violet-50,
+.bg-fuchsia-50,
+.bg-rose-50,
+.bg-sky-50 {
+  color: #1f2937 !important;
+}
+
+/* Ensure modal and card content has proper contrast */
+.modal-content,
+.card-content,
+.white-bg-content {
+  color: #1f2937;
+}
+
+/* Override for specific components that need dark text */
+.light-content {
+  color: #374151;
+}
+
+.light-content h1,
+.light-content h2,
+.light-content h3,
+.light-content h4,
+.light-content h5,
+.light-content h6 {
+  color: #111827;
+}
+
+.light-content .text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.light-content .text-gray-700 {
+  color: #374151 !important;
+}
+
+.light-content .text-gray-900 {
+  color: #111827 !important;
+}
+
+/* Premium Glass Effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Premium Text Gradient */
+.gradient-text {
+  background: linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cosmic Animations */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cosmic-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--electric-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.8);
+}
+
+/* Particle Background Support */
+#tsparticles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+/* Dotted Background Pattern */
+.dotted-bg {
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.2) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-position:
+    0 0,
+    15px 15px;
 }
