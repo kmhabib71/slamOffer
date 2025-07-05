@@ -253,3 +253,86 @@ export interface ExportResult {
   size: number
   expiresAt: Date
 }
+
+export interface PreviewRequest {
+  businessContext: {
+    businessDescription: string
+  }
+  componentId: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11
+}
+
+export interface PreviewItem {
+  title: string
+  description: string
+  value?: string
+}
+
+export interface PreviewResponse {
+  componentName: string
+  previewItems: PreviewItem[]
+  totalItemsAvailable: number
+  unlockCTA: string
+}
+
+// Enhanced types for complete offer generation
+export interface GrandSlamOfferItem {
+  id: string
+  title: string
+  description: string
+  value?: string
+  category?: 'core' | 'bonus' | 'guarantee' | 'delivery'
+  priority?: 'high' | 'medium' | 'low'
+  order: number
+}
+
+export interface CompleteOfferComponent {
+  componentId: ComponentId
+  componentName: string
+  description: string
+  items: GrandSlamOfferItem[]
+  totalValue?: string
+  isLocked: boolean
+  previewCount: number // How many items to show for free users
+  totalAvailable?: number // Total items available in full version
+  conversionMessage?: string | null // Message to motivate upgrade
+}
+
+export interface CompleteGrandSlamOffer {
+  id: string
+  businessContext: {
+    businessDescription: string
+  }
+  components: CompleteOfferComponent[]
+  totalOfferValue: string
+  createdAt: string
+  metadata: {
+    tokenUsage?: number
+    generationTime?: number
+    model?: string
+  }
+}
+
+// Request type for complete offer generation
+export interface CompleteOfferRequest {
+  businessContext: {
+    businessDescription: string
+  }
+  userTier: 'free' | 'pro'
+  generateComplete?: boolean // For pro users
+}
+
+export const COMPONENT_NAMES = {
+  1: 'Dream Outcome Identification',
+  2: 'Problems & Obstacles List',
+  3: 'Solutions List',
+  4: 'Solutions Delivery Vehicles',
+  5: 'Trim & Stack',
+  6: 'Ultimate High-Value Bundle',
+  7: 'Scarcity',
+  8: 'Urgency',
+  9: 'Bonuses',
+  10: 'Guarantees',
+  11: 'Naming',
+} as const
+
+export type ComponentId = keyof typeof COMPONENT_NAMES

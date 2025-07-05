@@ -1,12 +1,14 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { AuthUser, authService, useAuthStateChange } from '@/lib/auth'
+import { AuthUser, authService } from '@/lib/auth'
 import { identifyUser } from '@/lib/posthog'
+import { supabase } from '@/lib/supabase'
 
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
+  isInitialized: boolean
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -28,13 +30,14 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const refreshUser = async () => {
+    setLoading(true)
     try {
       const currentUser = await authService.getCurrentUser()
       setUser(currentUser)
 
-      // Identify user in PostHog if they exist
       if (currentUser) {
         identifyUser(currentUser.id, {
           email: currentUser.email,
@@ -45,6 +48,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error('Error refreshing user:', error)
       setUser(null)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -58,34 +63,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    // Initial user fetch
-    refreshUser().finally(() => setLoading(false))
+    let mounted = true
 
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = useAuthStateChange(authUser => {
-      setUser(authUser)
-      setLoading(false)
+    // Initial session check
+    const initializeAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (mounted) {
+          if (session) {
+            await refreshUser()
+          } else {
+            setUser(null)
+            setLoading(false)
+          }
+          setIsInitialized(true)
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error)
+        if (mounted) {
+          setUser(null)
+          setLoading(false)
+          setIsInitialized(true)
+        }
+      }
+    }
 
-      // Identify user in PostHog
-      if (authUser) {
-        identifyUser(authUser.id, {
-          email: authUser.email,
-          subscription_tier: authUser.profile?.subscription_tier,
-          credits_remaining: authUser.profile?.credits_remaining,
-        })
+    initializeAuth()
+
+    // Set up auth state listener
+    const subscription = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await refreshUser()
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setLoading(false)
       }
     })
 
     return () => {
-      subscription.unsubscribe()
+      mounted = false
+      subscription.data.subscription.unsubscribe()
     }
   }, [])
 
   const value = {
     user,
     loading,
+    isInitialized,
     signOut,
     refreshUser,
   }

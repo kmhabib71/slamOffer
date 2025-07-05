@@ -54,36 +54,44 @@ export const authService = {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
 
-    // Clear any local storage
+    // Only clear auth-related storage
     if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-
-      // Clear cookies for this domain
-      document.cookie.split(';').forEach(function (c) {
-        document.cookie = c
-          .replace(/^ +/, '')
-          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/')
+      // Clear only Supabase-related items
+      const supabaseItems = ['supabase.auth.token', 'supabase.auth.refreshToken']
+      supabaseItems.forEach(item => {
+        localStorage.removeItem(item)
+        sessionStorage.removeItem(item)
       })
     }
   },
 
   // Get current user
   async getCurrentUser(): Promise<AuthUser | null> {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-    if (error) throw error
-    if (!user) return null
+      if (!session?.user) return null
 
-    // Get user profile
-    const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single()
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
 
-    return {
-      ...user,
-      profile: profile || undefined,
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError)
+      }
+
+      return {
+        ...session.user,
+        profile: profile || undefined,
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error)
+      return null
     }
   },
 

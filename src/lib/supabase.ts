@@ -83,6 +83,41 @@ export type Database = {
           updated_at?: string
         }
       }
+      grand_slam_offers: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          business_description: string
+          offer_data: any
+          total_offer_value: string
+          user_tier: 'free' | 'pro'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          business_description: string
+          offer_data: any
+          total_offer_value: string
+          user_tier: 'free' | 'pro'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          business_description?: string
+          offer_data?: any
+          total_offer_value?: string
+          user_tier?: 'free' | 'pro'
+          created_at?: string
+          updated_at?: string
+        }
+      }
       analytics_events: {
         Row: {
           id: string

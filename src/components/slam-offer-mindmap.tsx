@@ -253,6 +253,97 @@ const nodeTypes = {
   slamOfferNode: SlamOfferNode,
 }
 
+// Generate nodes from provided offer data
+function generateNodesFromOfferData(offerData: GrandSlamOfferData): { nodes: Node[]; edges: Edge[] } {
+  const nodes: Node[] = []
+  const edges: Edge[] = []
+
+  // Create central node
+  nodes.push({
+    id: 'slam-offer',
+    type: 'slamOfferNode',
+    position: { x: 100, y: 400 },
+    data: {
+      label: offerData.title,
+      level: 'grandparent',
+      description: 'Your complete Grand Slam Offer structure',
+    },
+  })
+
+  // Create child nodes for each component
+  offerData.components.forEach((component, index) => {
+    const childId = `child-${index + 1}`
+    const childSpacing = 100
+    const childStartY = 50
+    const childY = childStartY + index * childSpacing
+
+    nodes.push({
+      id: childId,
+      type: 'slamOfferNode',
+      position: { x: 520, y: childY },
+      data: {
+        label: component.title,
+        level: 'child',
+        description: component.description,
+        isExpanded: false,
+        subChildrenCount: component.items.length,
+      },
+    })
+
+    // Connect to central node
+    edges.push({
+      id: `edge-slam-${childId}`,
+      source: 'slam-offer',
+      target: childId,
+      type: 'smoothstep',
+      style: {
+        stroke: '#8b5cf6',
+        strokeWidth: 3,
+      },
+      animated: false,
+    })
+
+    // Create subchild nodes for items
+    const subChildSpacing = 70
+    const subChildGroupHeight = (component.items.length - 1) * subChildSpacing
+    const subChildrenStartY = childY - subChildGroupHeight / 2
+
+    component.items.forEach((item, itemIndex) => {
+      const subchildId = `subchild-${index + 1}-${itemIndex + 1}`
+      const subchildY = subChildrenStartY + itemIndex * subChildSpacing
+
+      nodes.push({
+        id: subchildId,
+        type: 'slamOfferNode',
+        position: { x: 920, y: subchildY },
+        data: {
+          label: item.title,
+          level: 'subchild',
+          parentId: childId,
+          isVisible: false,
+          description: item.content,
+        },
+      })
+
+      // Connect to parent child node
+      edges.push({
+        id: `edge-${childId}-${subchildId}`,
+        source: childId,
+        target: subchildId,
+        type: 'smoothstep',
+        style: {
+          stroke: '#8b5cf6',
+          strokeWidth: 3,
+          strokeOpacity: 0,
+        },
+        animated: false,
+      })
+    })
+  })
+
+  return { nodes, edges }
+}
+
 // Generate ALL nodes and edges at once - no more dynamic creation/removal
 const generateAllSlamOfferData = () => {
   const nodes: Node[] = []
@@ -595,7 +686,11 @@ const TextView = ({
   )
 }
 
-export const SlamOfferMindmap: React.FC = () => {
+interface SlamOfferMindmapProps {
+  data?: GrandSlamOfferData
+}
+
+export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
   const [viewMode, setViewMode] = useState<'mindmap' | 'text'>('mindmap')
   const [expandedNode, setExpandedNode] = useState<string>('child-1') // Only one node expanded at a time
 
@@ -606,8 +701,10 @@ export const SlamOfferMindmap: React.FC = () => {
     })
   }, [])
 
-  // Generate all nodes once
-  const { nodes: allNodes, edges: allEdges } = generateAllSlamOfferData()
+  // Generate all nodes once - use provided data or generate default
+  const { nodes: allNodes, edges: allEdges } = data 
+    ? generateNodesFromOfferData(data) 
+    : generateAllSlamOfferData()
 
   const [nodes, setNodes, onNodesChange] = useNodesState(allNodes)
   const [edges, setEdges, onEdgesState] = useEdgesState(allEdges)

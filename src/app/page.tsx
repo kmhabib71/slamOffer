@@ -25,7 +25,7 @@ import { analytics } from '@/lib/posthog'
 import { useAuth } from './providers/auth-provider'
 import { AuthModal } from '@/components/auth/auth-modal'
 import Link from 'next/link'
-
+import { useRouter } from 'next/navigation'
 // Jupyter Notebook Demo Component
 function JupyterNotebookDemo() {
   const [openCells, setOpenCells] = useState<number[]>([0]) // First cell open by default
@@ -505,7 +505,7 @@ export default function Home() {
   const { user, loading, signOut } = useAuth()
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
-
+  const router = useRouter()
   useEffect(() => {
     analytics.landingPageView()
   }, [])
@@ -517,6 +517,8 @@ export default function Home() {
       setAuthModalOpen(true)
     } else {
       // TODO: Navigate to generation page
+
+      router.push('/dashboard')
       console.log('Navigate to generation page')
     }
   }
