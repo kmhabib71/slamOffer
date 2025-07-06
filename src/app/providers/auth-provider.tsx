@@ -33,6 +33,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false)
 
   const refreshUser = async () => {
+    if (!isInitialized) return // Don't refresh if not initialized yet
+
     setLoading(true)
     try {
       const currentUser = await authService.getCurrentUser()
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error('Error refreshing user:', error)
-      setUser(null)
+      // Don't clear user on refresh error - maintain last known state
     } finally {
       setLoading(false)
     }
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let mounted = true
+    let visibilityHandler: ((e: Event) => void) | null = null
 
     // Initial session check
     const initializeAuth = async () => {
@@ -73,11 +76,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         } = await supabase.auth.getSession()
         if (mounted) {
           if (session) {
-            await refreshUser()
+            const currentUser = await authService.getCurrentUser()
+            setUser(currentUser)
+            if (currentUser) {
+              identifyUser(currentUser.id, {
+                email: currentUser.email,
+                subscription_tier: currentUser.profile?.subscription_tier,
+                credits_remaining: currentUser.profile?.credits_remaining,
+              })
+            }
           } else {
             setUser(null)
-            setLoading(false)
           }
+          setLoading(false)
           setIsInitialized(true)
         }
       } catch (error) {
@@ -88,6 +99,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsInitialized(true)
         }
       }
+    }
+
+    // Set up visibility change handler
+    if (typeof document !== 'undefined') {
+      visibilityHandler = async () => {
+        if (document.visibilityState === 'visible' && isInitialized && !loading) {
+          // Only refresh session when becoming visible and already initialized
+          const {
+            data: { session },
+          } = await supabase.auth.getSession()
+          if (session && user?.id !== session.user.id) {
+            await refreshUser() // Only refresh if session user ID changed
+          } else if (!session && user) {
+            setUser(null) // Clear user if session is gone
+          }
+        }
+      }
+      document.addEventListener('visibilitychange', visibilityHandler)
     }
 
     initializeAuth()
@@ -106,6 +135,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false
+      if (visibilityHandler) {
+        document.removeEventListener('visibilitychange', visibilityHandler)
+      }
       subscription.data.subscription.unsubscribe()
     }
   }, [])

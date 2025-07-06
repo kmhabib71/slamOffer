@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles,
@@ -23,12 +23,15 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/app/providers/auth-provider'
 import { useRouter } from 'next/navigation'
-import { CompleteGrandSlamOffer, CompleteOfferRequest } from '@/types'
+import { CompleteGrandSlamOffer, CompleteOfferRequest, CompleteOfferComponent } from '@/types'
 import { GenerationAnimation } from '@/components/dashboard/generation-animation'
 import { OfferResults } from '@/components/dashboard/offer-results'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'
 import { saveGrandSlamOffer } from '@/lib/offers'
 import { AuthGuard } from '@/components/auth/auth-guard'
+import { useTestMode } from '@/hooks/use-test-mode'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
 interface BusinessContext {
   businessDescription: string
@@ -37,6 +40,8 @@ interface BusinessContext {
 export default function DashboardPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const { isTestMode } = useTestMode()
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const [businessContext, setBusinessContext] = useState<BusinessContext>({
     businessDescription: '',
@@ -48,7 +53,23 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'mindmap' | 'text'>('text')
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
-  const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
+  const [selectedComponent, setSelectedComponent] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) return
+
+      const { data } = await supabase
+        .from('admin_users')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+
+      setIsAdmin(!!data)
+    }
+
+    checkAdminStatus()
+  }, [user?.id])
 
   const handleInputChange = (value: string) => {
     setBusinessContext({ businessDescription: value })
@@ -68,60 +89,194 @@ export default function DashboardPage() {
     setCurrentStep('generating')
     setError(null)
 
-    try {
-      const request: CompleteOfferRequest = {
-        businessContext,
-        userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
-        generateComplete: user?.profile?.subscription_tier === 'pro',
-      }
-
-      const response = await fetch('/api/generate-complete-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    if (isTestMode) {
+      // Use mock data for testing
+      const mockData = {
+        success: true,
+        data: {
+          id: 'mock-offer-' + Date.now(),
+          businessContext: businessContext,
+          components: [
+            {
+              componentId: 1,
+              componentName: 'Dream Outcome Identification',
+              description: "Your customer's perfect transformation story",
+              items: [
+                {
+                  id: '1',
+                  title: 'Sample Dream Outcome 1',
+                  description: 'Description of the outcome',
+                  value: '$1,000 value',
+                  priority: 'high' as 'high' | 'medium' | 'low',
+                  order: 1,
+                },
+                {
+                  id: '2',
+                  title: 'Sample Dream Outcome 2',
+                  description: 'Description of another outcome',
+                  value: '$500 value',
+                  priority: 'medium' as 'high' | 'medium' | 'low',
+                  order: 2,
+                },
+              ],
+              isLocked: false,
+              previewCount: 2,
+            },
+            {
+              componentId: 2,
+              componentName: 'Problems & Obstacles List',
+              description: 'Key challenges your customers face',
+              items: [
+                {
+                  id: '3',
+                  title: 'Sample Problem 1',
+                  description: 'Description of the problem',
+                  value: '$800 value',
+                  priority: 'high' as 'high' | 'medium' | 'low',
+                  order: 1,
+                },
+              ],
+              isLocked: true,
+              previewCount: 1,
+            },
+            {
+              componentId: 3,
+              componentName: 'Solutions List',
+              description: 'Your unique solution approach',
+              items: [
+                {
+                  id: '4',
+                  title: 'Sample Solution 1',
+                  description: 'Description of the solution',
+                  value: '$1,200 value',
+                  priority: 'high' as 'high' | 'medium' | 'low',
+                  order: 1,
+                },
+              ],
+              isLocked: true,
+              previewCount: 1,
+            },
+          ] as CompleteOfferComponent[],
+          totalOfferValue: '$10,000',
+          createdAt: new Date().toISOString(),
+          metadata: {
+            tokenUsage: 0,
+            generationTime: 0,
+            model: 'test',
+          },
         },
-        body: JSON.stringify(request),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to generate offer')
       }
 
-      if (data.success && data.data) {
-        setGeneratedOffer(data.data)
-        setCurrentStep('results')
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 33000))
 
-        // Save the offer to database
-        try {
-          const saveResult = await saveGrandSlamOffer(
-            user!.id,
-            data.data,
-            user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free'
-          )
+      try {
+        const data = mockData
 
-          if (!saveResult.success) {
-            console.warn('Failed to save offer to database:', saveResult.error)
+        if (data.success && data.data) {
+          setGeneratedOffer(data.data)
+          setCurrentStep('results')
+
+          // Save the offer to database with enhanced error handling
+          try {
+            if (!user?.id) {
+              console.error('Cannot save offer: User ID is missing')
+              setError('Failed to save offer: User not authenticated')
+              return
+            }
+
+            const saveResult = await saveGrandSlamOffer(
+              user.id,
+              data.data,
+              user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free'
+            )
+
+            if (!saveResult.success) {
+              console.error('Failed to save offer to database:', saveResult.error)
+              if (saveResult.error && !saveResult.error.includes('duplicate')) {
+                setError(`Failed to save offer: ${saveResult.error}`)
+              }
+            }
+          } catch (saveError) {
+            console.error('Unexpected error saving offer:', saveError)
+            setError('An unexpected error occurred while saving your offer')
           }
-        } catch (saveError) {
-          console.warn('Error saving offer (table may not exist yet):', saveError)
-          // Continue without saving - table will be created later
+        } else {
+          throw new Error('Invalid response format')
         }
-      } else {
-        throw new Error('Invalid response format')
+      } catch (err) {
+        console.error('Generation error:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        setCurrentStep('input')
+      } finally {
+        setIsGenerating(false)
       }
-    } catch (err) {
-      console.error('Generation error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
-      setCurrentStep('input')
-    } finally {
-      setIsGenerating(false)
+    } else {
+      // Use real API for generation
+      try {
+        const request: CompleteOfferRequest = {
+          businessContext,
+          userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
+          generateComplete: user?.profile?.subscription_tier === 'pro',
+        }
+
+        const response = await fetch('/api/generate-complete-offer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || data.details || 'Failed to generate offer')
+        }
+
+        if (data.success && data.data) {
+          setGeneratedOffer(data.data)
+          setCurrentStep('results')
+
+          // Save the offer to database with enhanced error handling
+          try {
+            if (!user?.id) {
+              console.error('Cannot save offer: User ID is missing')
+              setError('Failed to save offer: User not authenticated')
+              return
+            }
+
+            const saveResult = await saveGrandSlamOffer(
+              user.id,
+              data.data,
+              user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free'
+            )
+
+            if (!saveResult.success) {
+              console.error('Failed to save offer to database:', saveResult.error)
+              if (saveResult.error && !saveResult.error.includes('duplicate')) {
+                setError(`Failed to save offer: ${saveResult.error}`)
+              }
+            }
+          } catch (saveError) {
+            console.error('Unexpected error saving offer:', saveError)
+            setError('An unexpected error occurred while saving your offer')
+          }
+        } else {
+          throw new Error('Invalid response format')
+        }
+      } catch (err) {
+        console.error('Generation error:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        setCurrentStep('input')
+      } finally {
+        setIsGenerating(false)
+      }
     }
   }
 
   const handlePurchaseClick = (componentName?: string) => {
-    setSelectedComponent(componentName || null)
+    setSelectedComponent(componentName)
     setShowPurchaseModal(true)
   }
 
@@ -188,6 +343,26 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <main className="container mx-auto px-6 py-8">
+          {/* Test Mode Indicator for Admins */}
+          {isAdmin && (
+            <div className="mb-6 flex items-center space-x-2 bg-white p-4 rounded-lg shadow-sm border">
+              <div
+                className={`w-2 h-2 rounded-full ${isTestMode ? 'bg-yellow-400' : 'bg-green-400'}`}
+              />
+              <span className="text-sm font-medium text-gray-600">
+                {isTestMode ? 'Test Mode - Using Mock Data' : 'Live Mode - Using AI Generation'}
+              </span>
+              {isTestMode && (
+                <Link
+                  href="/admin/settings"
+                  className="ml-auto text-sm text-violet-600 hover:text-violet-700"
+                >
+                  Configure Test Mode
+                </Link>
+              )}
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {currentStep === 'input' && (
               <motion.div
@@ -317,7 +492,7 @@ export default function DashboardPage() {
           <PurchaseModal
             isOpen={showPurchaseModal}
             onClose={() => setShowPurchaseModal(false)}
-            selectedComponent={selectedComponent}
+            componentName={selectedComponent}
           />
         )}
       </div>

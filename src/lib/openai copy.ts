@@ -384,11 +384,18 @@ For the Solutions List component (3), each preview must use the complete problem
 `
 }
 
-Generate components with these exact item counts (TESTING MODE - First 4 components only):
+Generate components with these exact item counts:
 1. Dream Outcome Identification (${componentItemCounts[1]} items) - Specific, measurable transformation outcomes
 2. Problems & Obstacles List (${componentItemCounts[2]} items) - Everything preventing achievement (before/during/after)
 3. Solutions List (${componentItemCounts[3]} items) - "How to" solutions for every problem  
 4. Solutions Delivery Vehicles (${componentItemCounts[4]} items) - Scalable ways to deliver solutions
+5. Trim & Stack (${componentItemCounts[5]} items) - High-value, low-cost optimization
+6. Ultimate High-Value Deliverable Bundle (${componentItemCounts[6]} items) - Irresistible package creation
+7. Scarcity (${componentItemCounts[7]} items) - Limited supply/access elements
+8. Urgency (${componentItemCounts[8]} items) - Time-based pressure tactics
+9. Bonuses (${componentItemCounts[9]} items) - Value-stacking additions
+10. Guarantees (${componentItemCounts[10]} items) - Risk reversal strategies
+11. Naming (${componentItemCounts[11]} items) - M.A.G.I.C. formula implementation
 
 Format as JSON:
 {
@@ -412,10 +419,11 @@ Format as JSON:
       "totalValue": "$XX,XXX",
       "totalAvailable": ${componentItemCounts[1]}
     }
-    // ... repeat for first 4 components only
+    // ... repeat for all 11 components
   },
   "totalOfferValue": "$XXX,XXX",
-  "summary": "Brief offer summary"}`
+  "summary": "Brief offer summary"
+}`
 
     const startTime = Date.now()
 
@@ -426,13 +434,13 @@ Format as JSON:
           role: 'system',
           content:
             SYSTEM_PROMPT +
-            `\n\nGeneration Mode: ${isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE'} - TESTING (First 4 Components)`,
+            `\n\nGeneration Mode: ${isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE'}`,
         },
         { role: 'user', content: completePrompt },
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
-      max_tokens: isProUser ? 4000 : 2000, // Reduced tokens since we're only generating 4 components
+      max_tokens: isProUser ? 8000 : 4000,
     })
 
     const endTime = Date.now()
@@ -445,8 +453,7 @@ Format as JSON:
     // Transform to expected format
     const components: import('../types').CompleteOfferComponent[] = []
 
-    // Only process first 4 components during testing
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 11; i++) {
       const componentId = i as import('../types').ComponentId
       const componentData = response.components[i.toString()]
 
@@ -534,25 +541,6 @@ Format as JSON:
       }
     }
 
-    // Add empty placeholder components for the remaining components (5-11)
-    for (let i = 5; i <= 11; i++) {
-      const componentId = i as import('../types').ComponentId
-      const totalAvailable = componentItemCounts[componentId] || 12
-
-      components.push({
-        componentId,
-        componentName: COMPONENT_NAMES[componentId],
-        description: getComponentDescription(componentId),
-        items: [],
-        isLocked: !isProUser,
-        previewCount: 3,
-        totalAvailable: totalAvailable,
-        conversionMessage: isProUser
-          ? null
-          : `There are ${totalAvailable - 3} more items. Upgrade to Pro to unlock all and export to PDF!`,
-      })
-    }
-
     const result: import('../types').CompleteGrandSlamOffer = {
       id: `offer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       businessContext,
@@ -563,7 +551,6 @@ Format as JSON:
         tokenUsage: completion.usage?.total_tokens || 0,
         generationTime: endTime - startTime,
         model: 'gpt-4o-mini',
-        testMode: true, // Added flag to indicate test mode
       },
     }
 

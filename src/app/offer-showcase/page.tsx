@@ -67,14 +67,62 @@ const offerData = {
       color: 'from-emerald-600 to-emerald-500',
       description: 'Transform every problem into a concrete solution',
       items: [
-        'Problem: Struggling with lead generation\nSolution: Automated lead generation system with 24/7 client acquisition',
-        'Problem: Overwhelmed by operations\nSolution: Complete business automation blueprint and delegation matrix',
-        'Problem: Unable to scale services\nSolution: Service productization framework for scalable delivery',
-        'Problem: Lack of systems\nSolution: Done-for-you process templates and SOPs for consistent results',
-        'Problem: Price increase fears\nSolution: Value-based pricing strategy with proven client communication scripts',
-        'Problem: Team building challenges\nSolution: A-player recruitment and retention system',
-        'Problem: Cash flow issues\nSolution: Predictable revenue generation model with multiple income streams',
-        'Problem: Market differentiation\nSolution: Unique market positioning strategy and brand authority system',
+        {
+          title: 'Automated Lead Generation System',
+          description:
+            'Problem: Struggling to generate consistent leads and convert them into high-ticket clients | Solution: Implement an AI-powered lead generation system that automatically identifies, qualifies, and nurtures potential clients 24/7',
+          value: '$5,000/month',
+          priority: 'high',
+        },
+        {
+          title: 'Business Automation Blueprint',
+          description:
+            'Problem: Overwhelmed by day-to-day operations with no time for strategic growth | Solution: Deploy our comprehensive automation system that handles 80% of routine tasks, freeing up 20+ hours per week for strategic activities',
+          value: '$3,000/month',
+          priority: 'high',
+        },
+        {
+          title: 'Service Productization Framework',
+          description:
+            'Problem: Unable to scale beyond trading time for money due to service delivery constraints | Solution: Transform your services into scalable products using our proven 5-step productization framework',
+          value: '$4,000/month',
+          priority: 'high',
+        },
+        {
+          title: 'Process Documentation System',
+          description:
+            'Problem: Lack of systematic processes leading to inconsistent client results | Solution: Implement our done-for-you process documentation system with 50+ templates and SOPs',
+          value: '$2,500/month',
+          priority: 'medium',
+        },
+        {
+          title: 'Value-Based Pricing Strategy',
+          description:
+            'Problem: Fear of increasing prices and potentially losing existing clients | Solution: Deploy our tested value-based pricing framework with done-for-you client communication scripts',
+          value: '$3,500/month',
+          priority: 'high',
+        },
+        {
+          title: 'A-Player Recruitment System',
+          description:
+            'Problem: Difficulty finding and retaining qualified team members | Solution: Use our proven recruitment and retention system to build a high-performing team',
+          value: '$4,000/month',
+          priority: 'medium',
+        },
+        {
+          title: 'Predictable Revenue Model',
+          description:
+            'Problem: Inconsistent cash flow making it hard to invest in growth | Solution: Implement our multi-stream revenue generation model with recurring income focus',
+          value: '$6,000/month',
+          priority: 'high',
+        },
+        {
+          title: 'Market Differentiation Strategy',
+          description:
+            'Problem: No clear differentiation from competitors in a crowded market | Solution: Create a unique market position using our brand authority system and competitive analysis framework',
+          value: '$4,500/month',
+          priority: 'high',
+        },
       ],
     },
     {
@@ -214,6 +262,14 @@ const offerData = {
       ],
     },
   ],
+}
+
+// Add type for solution items
+type SolutionItem = {
+  title: string
+  description: string
+  value: string
+  priority: string
 }
 
 export default function OfferShowcase() {
@@ -378,13 +434,29 @@ export default function OfferShowcase() {
                           >
                             <ChevronRight className="w-4 h-4 text-white" />
                           </div>
-                          <p className="text-lg font-semibold text-gray-900">
-                            {item.split('\n')[0]}
-                          </p>
+                          <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {(item as SolutionItem).title}
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                {(item as SolutionItem).value}
+                              </span>
+                              {(item as SolutionItem).priority === 'high' && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                  High Impact
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-2 text-gray-700">
+                              {(item as SolutionItem).description.split(' | ').map((part, idx) => (
+                                <p key={idx} className="text-base leading-relaxed">
+                                  {part}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-lg text-gray-700 group-hover:text-gray-900 transition-colors pl-10">
-                          {item.split('\n')[1]}
-                        </p>
                       </>
                     ) : (
                       <>
@@ -395,7 +467,7 @@ export default function OfferShowcase() {
                         </div>
                         <div className="flex-1">
                           <p className="text-lg text-gray-700 leading-relaxed group-hover:text-gray-900 transition-colors">
-                            {item}
+                            {typeof item === 'string' ? item : item.description}
                           </p>
                         </div>
                       </>

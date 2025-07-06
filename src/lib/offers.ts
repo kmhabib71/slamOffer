@@ -41,8 +41,29 @@ export async function saveGrandSlamOffer(
   userTier: 'free' | 'pro'
 ): Promise<{ success: boolean; data?: SavedGrandSlamOffer; error?: string }> {
   try {
+    // Input validation
+    if (!userId) {
+      return { success: false, error: 'User ID is required' }
+    }
+    if (!offer || !offer.businessContext?.businessDescription) {
+      return { success: false, error: 'Invalid offer data' }
+    }
+
     const title = generateOfferTitle(offer.businessContext.businessDescription)
 
+    // Check if user exists before saving
+    const { data: userExists, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
+
+    if (userError || !userExists) {
+      console.error('User validation error:', userError)
+      return { success: false, error: 'User not found or unauthorized' }
+    }
+
+    // Attempt to save the offer
     const { data, error } = await supabase
       .from('grand_slam_offers')
       .insert({
@@ -50,20 +71,33 @@ export async function saveGrandSlamOffer(
         title,
         business_description: offer.businessContext.businessDescription,
         offer_data: offer,
-        total_offer_value: offer.totalOfferValue,
+        total_offer_value: offer.totalOfferValue || '0',
         user_tier: userTier,
       })
       .select()
       .single()
 
     if (error) {
-      console.error('Error saving offer:', error)
-      return { success: false, error: error.message }
+      // Handle specific database errors
+      if (error.code === '23505') {
+        return { success: false, error: 'Duplicate offer found' }
+      } else if (error.code === '42P01') {
+        return { success: false, error: 'Database table not found - please contact support' }
+      } else if (error.code === '42501') {
+        return { success: false, error: 'Permission denied - please check your account status' }
+      }
+
+      console.error('Database error saving offer:', error)
+      return { success: false, error: `Database error: ${error.message}` }
+    }
+
+    if (!data) {
+      return { success: false, error: 'No data returned after save' }
     }
 
     return { success: true, data: data as SavedGrandSlamOffer }
   } catch (error) {
-    console.error('Error saving offer:', error)
+    console.error('Unexpected error saving offer:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',

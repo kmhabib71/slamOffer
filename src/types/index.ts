@@ -280,9 +280,12 @@ export interface GrandSlamOfferItem {
   title: string
   description: string
   value?: string
-  category?: 'core' | 'bonus' | 'guarantee' | 'delivery'
-  priority?: 'high' | 'medium' | 'low'
+  category: string
+  priority: 'high' | 'medium' | 'low'
   order: number
+  linkedProblem?: string // Full problem description
+  linkedProblemTitle?: string // Problem title/headline
+  solutionDetails?: string // Solution explanation
 }
 
 export interface CompleteOfferComponent {
@@ -309,6 +312,7 @@ export interface CompleteGrandSlamOffer {
     tokenUsage?: number
     generationTime?: number
     model?: string
+    testMode?: boolean
   }
 }
 
@@ -336,3 +340,10 @@ export const COMPONENT_NAMES = {
 } as const
 
 export type ComponentId = keyof typeof COMPONENT_NAMES
+
+export interface AuthUser {
+  id: string
+  email: string
+  subscription_tier: 'free' | 'pro'
+  // ... existing fields ...
+}

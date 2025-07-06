@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Brain, 
-  Target, 
-  Lightbulb, 
-  Rocket, 
-  Star, 
-  Zap, 
-  CheckCircle, 
+import {
+  Brain,
+  Target,
+  Lightbulb,
+  Rocket,
+  Star,
+  Zap,
+  CheckCircle,
   Sparkles,
   TrendingUp,
   Shield,
   Clock,
   Users,
-  DollarSign
+  DollarSign,
 } from 'lucide-react'
 
 interface GenerationAnimationProps {
@@ -27,60 +27,103 @@ interface GenerationAnimationProps {
 const generationSteps = [
   {
     id: 1,
-    title: 'Analyzing Your Business Context',
-    description: 'Understanding your target market and core challenges',
-    icon: Brain,
-    color: 'from-violet-500 to-purple-600',
-    duration: 8000
+    title: 'Identifying Dream Outcomes',
+    description: 'Crafting your perfect customer transformation story',
+    icon: Target,
+    color: 'from-pink-500 to-rose-600',
+    quote: '"The size of your success is measured by the strength of your desire"',
+    duration: 3000,
   },
   {
     id: 2,
-    title: 'Identifying Dream Outcomes',
-    description: 'Crafting specific, measurable transformation goals',
-    icon: Target,
-    color: 'from-sky-500 to-blue-600',
-    duration: 7000
+    title: 'Mapping Problems & Pain Points',
+    description: 'Uncovering critical obstacles your customers face',
+    icon: Lightbulb,
+    color: 'from-orange-500 to-red-600',
+    quote: '"Every problem is a gift. Without them we wouldn\'t grow"',
+    duration: 3000,
   },
   {
     id: 3,
-    title: 'Mapping Problems & Obstacles',
-    description: 'Discovering hidden pain points your competitors miss',
-    icon: Lightbulb,
-    color: 'from-amber-500 to-orange-600',
-    duration: 9000
+    title: 'Crafting Solution Strategies',
+    description: 'Developing powerful solutions for each problem',
+    icon: Brain,
+    color: 'from-blue-500 to-blue-700',
+    quote: '"Don\'t find customers for your solution, find solutions for your customers"',
+    duration: 3000,
   },
   {
     id: 4,
-    title: 'Creating Value Solutions',
-    description: 'Building "How to" solutions for every obstacle',
+    title: 'Designing Delivery Vehicles',
+    description: 'Creating effective ways to deliver your solutions',
     icon: Rocket,
     color: 'from-emerald-500 to-green-600',
-    duration: 8500
+    quote: '"The best way to predict the future is to create it"',
+    duration: 3000,
   },
   {
     id: 5,
-    title: 'Optimizing Delivery Systems',
-    description: 'Designing scalable, high-value delivery methods',
+    title: 'Optimizing Value Stack',
+    description: 'Maximizing the perceived and real value of your offer',
     icon: TrendingUp,
-    color: 'from-pink-500 to-rose-600',
-    duration: 7500
+    color: 'from-amber-500 to-yellow-600',
+    quote: '"Price is what you pay. Value is what you get"',
+    duration: 3000,
   },
   {
     id: 6,
-    title: 'Applying Hormozi Framework',
-    description: 'Implementing $100M offers methodology',
+    title: 'Building Ultimate Deliverable',
+    description: 'Packaging your solutions into a compelling offer',
     icon: Star,
-    color: 'from-violet-500 to-indigo-600',
-    duration: 9500
+    color: 'from-purple-500 to-violet-600',
+    quote: '"Make it so good they can\'t ignore you"',
+    duration: 3000,
   },
   {
     id: 7,
-    title: 'Finalizing Your Grand Slam Offer',
-    description: 'Polishing and optimizing for maximum conversion',
+    title: 'Implementing Scarcity',
+    description: 'Adding genuine scarcity elements to drive action',
+    icon: Clock,
+    color: 'from-red-500 to-rose-600',
+    quote: '"The two most powerful warriors are patience and time"',
+    duration: 3000,
+  },
+  {
+    id: 8,
+    title: 'Creating Urgency',
+    description: 'Developing authentic reasons to act now',
+    icon: Zap,
+    color: 'from-sky-500 to-blue-600',
+    quote: '"The best time to act was yesterday. The next best time is now"',
+    duration: 3000,
+  },
+  {
+    id: 9,
+    title: 'Crafting Bonuses',
+    description: 'Designing irresistible bonus offerings',
+    icon: Sparkles,
+    color: 'from-violet-500 to-purple-600',
+    quote: '"In business, the real prize lies in the unexpected extra"',
+    duration: 3000,
+  },
+  {
+    id: 10,
+    title: 'Adding Guarantees',
+    description: 'Creating risk-reversing guarantees',
+    icon: Shield,
+    color: 'from-teal-500 to-emerald-600',
+    quote: '"Trust is the currency of business. Guarantee it"',
+    duration: 3000,
+  },
+  {
+    id: 11,
+    title: 'Finalizing Offer Name',
+    description: 'Crafting a compelling name for your offer',
     icon: CheckCircle,
-    color: 'from-emerald-500 to-teal-600',
-    duration: 6000
-  }
+    color: 'from-cyan-500 to-blue-600',
+    quote: '"Your offer\'s name is its handshake with the world"',
+    duration: 3000,
+  },
 ]
 
 export function GenerationAnimation({ businessContext }: GenerationAnimationProps) {
@@ -89,7 +132,9 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
   const [showParticles, setShowParticles] = useState(true)
 
   useEffect(() => {
-    const stepDuration = generationSteps[currentStep]?.duration || 8000
+    // Set total duration to 33 seconds (3 seconds per step)
+    const totalDuration = 33000
+    const stepDuration = Math.floor(totalDuration / generationSteps.length)
     const interval = 50 // Update every 50ms for smooth animation
     const totalIntervals = stepDuration / interval
 
@@ -105,7 +150,7 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
           setTimeout(() => {
             setCurrentStep(prev => prev + 1)
             setProgress(0)
-          }, 500)
+          }, 200) // Slightly longer transition for epic effect
         }
       }
     }, interval)
@@ -114,6 +159,7 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
   }, [currentStep])
 
   const currentStepData = generationSteps[currentStep]
+  const overallProgress = Math.round((currentStep * 100 + progress) / generationSteps.length)
 
   return (
     <motion.div
@@ -123,32 +169,35 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
       exit={{ opacity: 0 }}
       className="max-w-4xl mx-auto text-center"
     >
-      {/* Header */}
+      {/* Header with Epic Animation */}
       <div className="mb-12">
         <motion.div
-          animate={{ 
+          animate={{
             scale: [1, 1.1, 1],
-            rotate: [0, 5, -5, 0]
+            rotate: [0, 5, -5, 0],
           }}
-          transition={{ 
+          transition={{
             duration: 2,
             repeat: Infinity,
-            repeatType: "reverse"
+            repeatType: 'reverse',
           }}
           className="w-24 h-24 bg-gradient-to-br from-violet-500 to-sky-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
         >
           <Sparkles className="h-12 w-12 text-white" />
         </motion.div>
-        
-        <h1 className="text-4xl font-black text-slate-800 mb-4">
-          Crafting Your 
+
+        <motion.h1
+          className="text-4xl font-black text-slate-800 mb-4"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          Crafting Your
           <span className="bg-gradient-to-r from-violet-600 via-sky-500 to-yellow-500 bg-clip-text text-transparent">
-            {' '}Grand Slam Offer
+            {' '}
+            Grand Slam Offer
           </span>
-        </h1>
-        <p className="text-lg text-slate-600">
-          Our AI is analyzing your business and applying Alex Hormozi's proven methodology
-        </p>
+        </motion.h1>
       </div>
 
       {/* Business Context Display */}
@@ -173,74 +222,107 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
                   x: [0, Math.random() * 400, 0],
                   y: [0, Math.random() * 300, 0],
                   scale: [0.5, 1, 0.5],
-                  opacity: [0.3, 0.8, 0.3]
+                  opacity: [0.3, 0.8, 0.3],
                 }}
                 transition={{
                   duration: Math.random() * 4 + 3,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: 'easeInOut',
                 }}
                 style={{
                   left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`
+                  top: `${Math.random() * 100}%`,
                 }}
               />
             ))}
           </div>
         )}
 
-        {/* Current Step Display */}
-        <div className="relative z-10">
-          <AnimatePresence mode="wait">
+        {/* Epic Component Animation */}
+        <div className="relative z-20">
+          <motion.div
+            key={currentStep}
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: -20 }}
+            transition={{
+              duration: 0.5,
+              type: 'spring',
+              stiffness: 100,
+            }}
+            className="flex flex-col items-center"
+          >
+            {/* Icon with Epic Animation */}
             <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.9 }}
-              transition={{ duration: 0.5 }}
-              className="text-center"
+              className={`w-20 h-20 bg-gradient-to-br ${currentStepData.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg transform`}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                repeatType: 'reverse',
+              }}
             >
-              {/* Step Icon */}
-              <motion.div
-                className={`w-20 h-20 rounded-full bg-gradient-to-br ${currentStepData?.color} flex items-center justify-center mx-auto mb-6 shadow-2xl`}
-                animate={{ 
-                  rotate: [0, 360],
-                  scale: [1, 1.1, 1]
-                }}
-                transition={{ 
-                  rotate: { duration: 3, repeat: Infinity, ease: "linear" },
-                  scale: { duration: 2, repeat: Infinity, repeatType: "reverse" }
-                }}
-              >
-                {currentStepData && <currentStepData.icon className="h-10 w-10 text-white" />}
-              </motion.div>
-
-              {/* Step Content */}
-              <h2 className="text-2xl font-bold text-slate-800 mb-3">
-                {currentStepData?.title}
-              </h2>
-              <p className="text-slate-600 text-lg mb-6 max-w-md mx-auto">
-                {currentStepData?.description}
-              </p>
-
-              {/* Progress Bar */}
-              <div className="max-w-xs mx-auto">
-                <div className="flex justify-between text-sm text-slate-500 mb-2">
-                  <span>Step {currentStep + 1} of {generationSteps.length}</span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                  <motion.div
-                    className={`h-full bg-gradient-to-r ${currentStepData?.color} rounded-full`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-              </div>
+              {React.createElement(currentStepData.icon, {
+                className: 'h-10 w-10 text-white',
+              })}
             </motion.div>
-          </AnimatePresence>
+
+            {/* Title with Stagger Animation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h3 className="text-2xl font-bold text-slate-800 mb-3">{currentStepData.title}</h3>
+              <p className="text-slate-600 mb-4">{currentStepData.description}</p>
+            </motion.div>
+
+            {/* Motivational Quote */}
+            {/* <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mb-8 text-lg italic text-slate-700 font-medium"
+            >
+              {currentStepData.quote}
+            </motion.div> */}
+
+            {/* Progress Bars with Gradient Animation */}
+            <div className="w-full max-w-md mx-auto">
+              <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-violet-500 via-sky-500 to-violet-500 bg-size-200"
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${progress}%`,
+                    backgroundPosition: ['0% 0%', '100% 100%'],
+                  }}
+                  transition={{
+                    width: { duration: 0.1, ease: 'linear' },
+                    backgroundPosition: { duration: 3, repeat: Infinity, ease: 'linear' },
+                  }}
+                />
+              </div>
+              <div className="mt-4 flex justify-between items-center text-sm text-slate-500">
+                <span className="font-medium">
+                  Step {currentStep + 1} of {generationSteps.length}
+                </span>
+                <span className="font-medium">{Math.round(progress)}% Complete</span>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div
+            className="mt-4 text-center text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-sky-600"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            Overall Progress: {overallProgress}%
+          </motion.div>
         </div>
+
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50/30 to-sky-50/30 z-0" />
+        <div className="absolute inset-0 bg-grid-slate-200/20 z-0" />
       </div>
 
       {/* Step Progress Indicators */}
@@ -249,10 +331,10 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
           <motion.div
             key={step.id}
             className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              index < currentStep 
-                ? 'bg-emerald-500' 
-                : index === currentStep 
-                  ? 'bg-violet-500 scale-125' 
+              index < currentStep
+                ? 'bg-emerald-500'
+                : index === currentStep
+                  ? 'bg-violet-500 scale-125'
                   : 'bg-slate-300'
             }`}
             animate={index === currentStep ? { scale: [1, 1.2, 1] } : {}}
@@ -302,3 +384,16 @@ export function GenerationAnimation({ businessContext }: GenerationAnimationProp
     </motion.div>
   )
 }
+
+// Add this CSS to your global styles or component
+const styles = `
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
+.bg-grid-slate-200\/20 {
+  background-image: linear-gradient(to right, rgba(226, 232, 240, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+`

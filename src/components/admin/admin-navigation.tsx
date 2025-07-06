@@ -51,6 +51,28 @@ export const AdminNavigation: React.FC<AdminNavigationProps> = ({ user, adminUse
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href="/admin/templates"
+                className={`flex items-center px-4 py-2 text-sm font-medium ${
+                  pathname === '/admin/templates'
+                    ? 'text-violet-600 bg-violet-50'
+                    : 'text-gray-600 hover:text-violet-600 hover:bg-violet-50'
+                }`}
+              >
+                <span className="mr-3">📋</span>
+                Templates
+              </Link>
+              <Link
+                href="/admin/settings"
+                className={`flex items-center px-4 py-2 text-sm font-medium ${
+                  pathname === '/admin/settings'
+                    ? 'text-violet-600 bg-violet-50'
+                    : 'text-gray-600 hover:text-violet-600 hover:bg-violet-50'
+                }`}
+              >
+                <span className="mr-3">⚙️</span>
+                Settings
+              </Link>
             </div>
           </div>
           <div className="flex items-center space-x-4">

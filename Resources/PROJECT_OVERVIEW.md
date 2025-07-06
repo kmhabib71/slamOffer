@@ -45,20 +45,6 @@ Build an AI-powered web application that generates irresistible business offers 
 - **AI Integration**: Claude 4 Sonnet & OpenAI GPT-4 APIs
 - **Deployment**: Vercel (recommended)
 
-### Project Structure
-
-```
-Grand-offer/
-├── slamOffer/                    # Main Next.js application
-│   ├── src/app/                  # App router pages
-│   ├── src/components/           # Reusable components
-│   └── package.json              # Dependencies
-├── components/                   # Standalone AI components
-├── 01-10_*.md                   # Complete methodology files (125+ pages)
-├── essential_content_30_percent.md # Optimized AI prompting content
-└── PROJECT_OVERVIEW.md          # This file
-```
-
 ## 📋 The Complete Hormozi Framework (11 Core Components)
 
 ### Phase 1: Core Offer Creation (6 Components)

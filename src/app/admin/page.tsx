@@ -158,6 +158,12 @@ export default function AdminDashboard() {
                 Manage Users
               </Button>
             </Link>
+            <Link href="/admin/settings">
+              <Button variant="outline" className="w-full justify-start">
+                <span className="mr-2">⚙️</span>
+                System Settings
+              </Button>
+            </Link>
           </div>
         </div>
 
