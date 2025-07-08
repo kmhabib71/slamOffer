@@ -257,11 +257,15 @@ export async function generateCompleteGrandSlamOffer(
   try {
     const isProUser = userTier === 'pro' && generateComplete
 
+    // Generate dynamic item counts for variation - AI will choose between 30-50 for problems and solutions
+    const generateDynamicCount = (min: number, max: number) =>
+      Math.floor(Math.random() * (max - min + 1)) + min
+
     // Realistic component item counts based on Hormozi methodology
     const componentItemCounts = {
       1: isProUser ? 12 : 3, // Dream Outcomes
-      2: isProUser ? 47 : 3, // Problems (most comprehensive)
-      3: isProUser ? 47 : 3, // Solutions (matches problems)
+      2: isProUser ? generateDynamicCount(30, 50) : 3, // Problems (dynamic 30-50)
+      3: isProUser ? generateDynamicCount(30, 50) : 3, // Solutions (dynamic 30-50)
       4: isProUser ? 17 : 3, // Delivery Vehicles
       5: isProUser ? 8 : 3, // Trim & Stack (optimization)
       6: isProUser ? 12 : 3, // Value Bundle
@@ -384,13 +388,22 @@ For the Solutions List component (3), each preview must use the complete problem
 `
 }
 
-Generate components with these exact item counts (TESTING MODE - First 4 components only):
+Generate components with these exact item counts:
 1. Dream Outcome Identification (${componentItemCounts[1]} items) - Specific, measurable transformation outcomes
-2. Problems & Obstacles List (${componentItemCounts[2]} items) - Everything preventing achievement (before/during/after)
-3. Solutions List (${componentItemCounts[3]} items) - "How to" solutions for every problem  
+2. Problems & Obstacles List (${componentItemCounts[2]} items) - Everything preventing achievement (before/during/after) [AI-selected count between 30-50]
+3. Solutions List (${componentItemCounts[3]} items) - "How to" solutions for every problem [AI-selected count between 30-50]
 4. Solutions Delivery Vehicles (${componentItemCounts[4]} items) - Scalable ways to deliver solutions
+5. Trim & Stack (${componentItemCounts[5]} items) - High-value, low-cost optimization
+6. Ultimate High-Value Deliverable Bundle (${componentItemCounts[6]} items) - Irresistible package creation
+7. Scarcity (${componentItemCounts[7]} items) - Limited supply/access elements
+8. Urgency (${componentItemCounts[8]} items) - Time-based pressure tactics
+9. Bonuses (${componentItemCounts[9]} items) - Value-stacking additions
+10. Guarantees (${componentItemCounts[10]} items) - Risk reversal strategies
+11. Naming (${componentItemCounts[11]} items) - M.A.G.I.C. formula implementation
 
-Format as JSON:
+CRITICAL: You MUST generate ALL 11 components with the exact item counts specified. Do not skip any components.
+
+Format as JSON with this EXACT structure:
 {
   "components": {
     "1": {
@@ -398,55 +411,295 @@ Format as JSON:
       "description": "Component description",
       "items": [
         {
-          "id": "dream-1",
+          "id": "1-1",
           "title": "Specific outcome title",
           "description": "Detailed description with actionable steps",
-          "value": "$X,XXX value",
+          "value": "$2,000",
           "category": "core",
           "priority": "high",
-          "order": 1,
-          "linkedProblem": "Only for Solutions List component - reference to problem",
-          "solutionDetails": "Only for Solutions List component - detailed solution"
+          "order": 1
         }
       ],
-      "totalValue": "$XX,XXX",
+      "totalValue": "$10,000",
       "totalAvailable": ${componentItemCounts[1]}
+    },
+    "2": {
+      "componentName": "Problems & Obstacles List",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "2-1",
+          "title": "Problem title",
+          "description": "Problem description",
+          "value": "$1,500",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$15,000",
+      "totalAvailable": ${componentItemCounts[2]}
+    },
+    "3": {
+      "componentName": "Solutions List",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "3-1",
+          "title": "Solution title",
+          "description": "Solution description",
+          "value": "$3,000",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$20,000",
+      "totalAvailable": ${componentItemCounts[3]}
+    },
+    "4": {
+      "componentName": "Solutions Delivery Vehicles",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "4-1",
+          "title": "Delivery vehicle title",
+          "description": "Delivery vehicle description",
+          "value": "$2,500",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$12,000",
+      "totalAvailable": ${componentItemCounts[4]}
+    },
+    "5": {
+      "componentName": "Trim & Stack",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "5-1",
+          "title": "Optimization title",
+          "description": "Optimization description",
+          "value": "$1,800",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$8,000",
+      "totalAvailable": ${componentItemCounts[5]}
+    },
+    "6": {
+      "componentName": "Ultimate High-Value Bundle",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "6-1",
+          "title": "Bundle title",
+          "description": "Bundle description",
+          "value": "$4,000",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$18,000",
+      "totalAvailable": ${componentItemCounts[6]}
+    },
+    "7": {
+      "componentName": "Scarcity",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "7-1",
+          "title": "Scarcity title",
+          "description": "Scarcity description",
+          "value": "$1,200",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$5,000",
+      "totalAvailable": ${componentItemCounts[7]}
+    },
+    "8": {
+      "componentName": "Urgency",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "8-1",
+          "title": "Urgency title",
+          "description": "Urgency description",
+          "value": "$1,000",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$4,000",
+      "totalAvailable": ${componentItemCounts[8]}
+    },
+    "9": {
+      "componentName": "Bonuses",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "9-1",
+          "title": "Bonus title",
+          "description": "Bonus description",
+          "value": "$2,200",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$12,000",
+      "totalAvailable": ${componentItemCounts[9]}
+    },
+    "10": {
+      "componentName": "Guarantees",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "10-1",
+          "title": "Guarantee title",
+          "description": "Guarantee description",
+          "value": "$1,500",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$6,000",
+      "totalAvailable": ${componentItemCounts[10]}
+    },
+    "11": {
+      "componentName": "Naming",
+      "description": "Component description",
+      "items": [
+        {
+          "id": "11-1",
+          "title": "Naming title",
+          "description": "Naming description",
+          "value": "$800",
+          "category": "core",
+          "priority": "high",
+          "order": 1
+        }
+      ],
+      "totalValue": "$3,000",
+      "totalAvailable": ${componentItemCounts[11]}
     }
-    // ... repeat for first 4 components only
   },
-  "totalOfferValue": "$XXX,XXX",
-  "summary": "Brief offer summary"}`
+  "totalOfferValue": "$100,000+",
+  "summary": "Brief offer summary"
+}`
 
     const startTime = Date.now()
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content:
-            SYSTEM_PROMPT +
-            `\n\nGeneration Mode: ${isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE'} - TESTING (First 4 Components)`,
-        },
-        { role: 'user', content: completePrompt },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-      max_tokens: isProUser ? 4000 : 2000, // Reduced tokens since we're only generating 4 components
-    })
+    let completion
+    try {
+      completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content:
+              SYSTEM_PROMPT +
+              `\n\nGeneration Mode: ${isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE'}`,
+          },
+          { role: 'user', content: completePrompt },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+        max_tokens: isProUser ? 16000 : 4000,
+      })
+    } catch (openaiError) {
+      console.error('OpenAI API Error:', openaiError)
+      throw new Error(
+        `OpenAI API failed: ${openaiError instanceof Error ? openaiError.message : 'Unknown error'}`
+      )
+    }
 
     const endTime = Date.now()
-    const response = JSON.parse(completion.choices[0].message.content || '{}')
+
+    // Get the raw content from OpenAI
+    const rawContent = completion.choices[0].message.content || '{}'
+
+    // Try to fix common JSON issues
+    let cleanedContent = rawContent
+
+    // Remove any markdown code blocks
+    cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/```\s*$/, '')
+
+    // Try to fix unterminated strings by finding the last complete object
+    if (cleanedContent.includes('SyntaxError') || !cleanedContent.trim().endsWith('}')) {
+      // Find the last complete component
+      const lastCompleteIndex = cleanedContent.lastIndexOf('    }')
+      if (lastCompleteIndex > 0) {
+        // Find the closing of components object
+        const componentsEndIndex = cleanedContent.indexOf('  },', lastCompleteIndex)
+        if (componentsEndIndex > 0) {
+          cleanedContent =
+            cleanedContent.substring(0, componentsEndIndex + 4) +
+            '\n  "totalOfferValue": "$100,000+",\n  "summary": "Complete offer package"\n}'
+        }
+      }
+    }
+
+    let response
+    try {
+      response = JSON.parse(cleanedContent)
+      console.log('Successfully parsed OpenAI response')
+      console.log('Response components:', Object.keys(response.components || {}))
+
+      // Validate that we have the expected structure
+      if (!response.components || typeof response.components !== 'object') {
+        throw new Error('Invalid response structure: missing components object')
+      }
+
+      // For pro users, validate we have all 11 components
+      if (isProUser) {
+        const componentKeys = Object.keys(response.components)
+        if (componentKeys.length < 11) {
+          throw new Error(
+            `Incomplete response: only ${componentKeys.length} components found, expected 11`
+          )
+        }
+      }
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError)
+      console.error('Raw content length:', rawContent.length)
+      console.error('Cleaned content preview:', cleanedContent.substring(0, 1000))
+      console.error('Cleaned content ending:', cleanedContent.substring(-1000))
+
+      // For pro users, this is a critical error - don't use fallback
+      if (isProUser) {
+        throw new Error(
+          `Failed to parse OpenAI response for pro user: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`
+        )
+      }
+
+      // Fallback: create a minimal valid response for free users only
+      response = {
+        components: {},
+        totalOfferValue: '$100,000+',
+        summary: 'Generated offer (parsing error occurred)',
+      }
+    }
 
     if (!response.components) {
-      throw new Error('Invalid complete offer response format from OpenAI')
+      console.warn('No components in response, creating fallback')
+      response.components = {}
     }
 
     // Transform to expected format
     const components: import('../types').CompleteOfferComponent[] = []
 
-    // Only process first 4 components during testing
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 11; i++) {
       const componentId = i as import('../types').ComponentId
       const componentData = response.components[i.toString()]
 
@@ -508,62 +761,44 @@ Format as JSON:
             }
           }),
           totalValue: componentData.totalValue,
-          isLocked: !isProUser,
-          previewCount: isProUser ? componentData.items.length : 3,
+          isLocked: false, // Always unlock for purchased offers
+          previewCount: componentData.items.length,
           totalAvailable: totalAvailable,
-          conversionMessage: isProUser
-            ? null
-            : `There are ${totalAvailable - 3} more items. Upgrade to Pro to unlock all and export to PDF!`,
+          conversionMessage: null, // No conversion message for purchased offers
         })
       } else {
-        // Fallback for missing components
-        const totalAvailable = componentItemCounts[componentId] || 12
+        // If we're missing components for pro users, this is an error - don't use mock data
+        if (isProUser) {
+          console.error(`Missing component ${componentId} in OpenAI response for pro user`)
+          throw new Error(`Failed to generate complete component ${componentId}. Please try again.`)
+        }
 
+        // For free users, create minimal fallback
+        const totalAvailable = componentItemCounts[componentId] || 12
         components.push({
           componentId,
           componentName: COMPONENT_NAMES[componentId],
           description: getComponentDescription(componentId),
           items: [],
-          isLocked: !isProUser,
+          isLocked: true,
           previewCount: 3,
           totalAvailable: totalAvailable,
-          conversionMessage: isProUser
-            ? null
-            : `There are ${totalAvailable - 3} more items. Upgrade to Pro to unlock all and export to PDF!`,
+          conversionMessage: `There are ${totalAvailable - 3} more items. Upgrade to Pro to unlock all and export to PDF!`,
         })
       }
     }
 
-    // Add empty placeholder components for the remaining components (5-11)
-    for (let i = 5; i <= 11; i++) {
-      const componentId = i as import('../types').ComponentId
-      const totalAvailable = componentItemCounts[componentId] || 12
-
-      components.push({
-        componentId,
-        componentName: COMPONENT_NAMES[componentId],
-        description: getComponentDescription(componentId),
-        items: [],
-        isLocked: !isProUser,
-        previewCount: 3,
-        totalAvailable: totalAvailable,
-        conversionMessage: isProUser
-          ? null
-          : `There are ${totalAvailable - 3} more items. Upgrade to Pro to unlock all and export to PDF!`,
-      })
-    }
-
     const result: import('../types').CompleteGrandSlamOffer = {
-      id: `offer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      _id: `offer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any,
+      user_id: 'temp-user' as any,
       businessContext,
       components,
       totalOfferValue: response.totalOfferValue || '$100,000+',
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       metadata: {
         tokenUsage: completion.usage?.total_tokens || 0,
         generationTime: endTime - startTime,
         model: 'gpt-4o-mini',
-        testMode: true, // Added flag to indicate test mode
       },
     }
 

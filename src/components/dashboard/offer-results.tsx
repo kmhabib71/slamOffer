@@ -22,12 +22,19 @@ import { OfferTextView } from './offer-text-view'
 import { OfferMindmapView } from './offer-mindmap-view'
 import { useAuth } from '@/app/providers/auth-provider'
 
+// Client-safe version for components
+type ClientSafeOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_id'> & {
+  _id: string
+  user_id: string
+}
+
 interface OfferResultsProps {
-  offer: CompleteGrandSlamOffer
+  offer: ClientSafeOffer
   viewMode: 'mindmap' | 'text'
   onViewModeChange: (mode: 'mindmap' | 'text') => void
   onPurchaseClick: (componentName?: string) => void
   onStartOver: () => void
+  isPurchased?: boolean
 }
 
 export function OfferResults({
@@ -36,9 +43,11 @@ export function OfferResults({
   onViewModeChange,
   onPurchaseClick,
   onStartOver,
+  isPurchased,
 }: OfferResultsProps) {
   const { user } = useAuth()
-  const isPro = user?.profile?.subscription_tier === 'pro'
+  const isOwner = user?.email === offer.user_id
+  const isPro = user?.profile?.subscription_tier === 'pro' || isPurchased
 
   const totalItems = offer.components.reduce((sum, comp) => sum + (comp.totalAvailable || 12), 0)
   const totalPreviewItems = offer.components.reduce((sum, comp) => sum + comp.previewCount, 0)
@@ -130,7 +139,7 @@ export function OfferResults({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
-            {!isPro && (
+            {isOwner && !isPro && (
               <button
                 onClick={() => onPurchaseClick()}
                 className="bg-gradient-to-r from-violet-500 to-sky-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-violet-600 hover:to-sky-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
@@ -160,7 +169,7 @@ export function OfferResults({
       </div>
 
       {/* Free User Notice */}
-      {!isPro && (
+      {isOwner && !isPro && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -203,14 +212,24 @@ export function OfferResults({
 
       {/* Content Display */}
       <div className="bg-white/40 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-        {viewMode === 'text' && <OfferTextView offer={offer} onPurchaseClick={onPurchaseClick} />}
+        {viewMode === 'text' && (
+          <OfferTextView
+            offer={offer}
+            onPurchaseClick={onPurchaseClick}
+            isPurchased={isPurchased}
+          />
+        )}
         {viewMode === 'mindmap' && (
-          <OfferMindmapView offer={offer} onPurchaseClick={onPurchaseClick} />
+          <OfferMindmapView
+            offer={offer}
+            onPurchaseClick={onPurchaseClick}
+            isPurchased={isPurchased}
+          />
         )}
       </div>
 
       {/* Bottom CTA for Free Users */}
-      {!isPro && (
+      {isOwner && !isPro && (
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

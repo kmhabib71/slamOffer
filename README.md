@@ -1,153 +1,217 @@
-# 🎯 Grand Slam Offer Generator
+# SlamOffer - AI-Powered Grand Slam Offer Generator
 
-Transform your business ideas into irresistible offers with AI-powered generation based on Alex Hormozi's proven $100M Offers methodology.
+A sophisticated AI-powered platform that generates compelling grand slam offers for businesses using advanced language models. Built with Next.js, MongoDB, and NextAuth.
 
-## ✨ Features
+## 🚀 Features
 
-- **AI-Powered Generation**: Advanced AI reads your business model and creates compelling offers
-- **Progressive Reveal**: Magical step-by-step generation with beautiful animations
-- **Smart Paywall**: Freemium strategy with strategic upgrade prompts
-- **Visual Mindmaps**: Interactive mindmap visualization of your offers
-- **Professional Exports**: Beautiful PDF exports ready for presentations
-- **Analytics Tracking**: Built-in PostHog analytics for conversion optimization
+- **AI-Powered Offer Generation**: Create comprehensive business offers using advanced AI
+- **Interactive Mindmap View**: Visualize your offer components in an interactive mindmap
+- **PDF Export**: Export offers to professional PDF documents
+- **Subscription Management**: Flexible pricing tiers with credit-based system
+- **Admin Panel**: Comprehensive admin dashboard for platform management
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-## 🚀 Quick Start
+## 🛠 Tech Stack
 
-### Prerequisites
-
-- Node.js 18.0.0 or higher
-- npm or yarn package manager
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd grand-slam-generator
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Set up environment variables:
-
-```bash
-cp .env.example .env.local
-# Fill in your API keys and configuration
-```
-
-4. Start the development server:
-
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## 🛠️ Tech Stack
-
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Animation**: Framer Motion
-- **Icons**: Lucide React
-- **Database**: Supabase
-- **Analytics**: PostHog
-- **Mindmaps**: React Flow
-- **PDF Generation**: Puppeteer
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, MongoDB
+- **Authentication**: NextAuth.js with Google OAuth
+- **Database**: MongoDB Atlas
+- **AI Integration**: OpenAI GPT models
+- **PDF Generation**: jsPDF, React-PDF
+- **UI Components**: Framer Motion, Headless UI, Lucide Icons
 - **Deployment**: Vercel
 
-## 📝 Environment Variables
+## 📋 Prerequisites
 
-Create a `.env.local` file with the following variables:
+- Node.js 18+ and npm
+- MongoDB Atlas account
+- Google OAuth credentials
+- OpenAI API key
 
-```bash
-# Next.js Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+## 🔧 Installation
 
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+1. **Clone the repository**
 
-# OpenAI API (for AI generation)
-OPENAI_API_KEY=your_openai_api_key
+   ```bash
+   git clone https://github.com/yourusername/slamoffer.git
+   cd slamoffer
+   ```
 
-# PostHog Analytics
-NEXT_PUBLIC_POSTHOG_KEY=your_posthog_project_api_key
-NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+2. **Install dependencies**
 
-# Stripe (for payments)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-```
+   ```bash
+   npm install
+   ```
 
-## 🏗️ Project Structure
+3. **Set up environment variables**
+   Create a `.env.local` file in the root directory:
+
+   ```env
+   # MongoDB Configuration
+   MONGODB_URI=your_mongodb_connection_string
+
+   # NextAuth Configuration
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_nextauth_secret
+
+   # Google OAuth
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+   # OpenAI Configuration
+   OPENAI_API_KEY=your_openai_api_key
+
+   # Optional: Stripe for payments
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   ```
+
+4. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:3000`
+
+## 📁 Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── providers/         # React providers (PostHog, etc.)
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Landing page
-├── lib/                   # Utility libraries
-│   ├── supabase.ts        # Supabase client
-│   └── posthog.ts         # Analytics configuration
-└── types/                 # TypeScript type definitions
-    └── index.ts           # Main types
+├── app/                  # Next.js App Router
+│   ├── api/             # API routes
+│   ├── auth/            # Authentication pages
+│   ├── admin/           # Admin panel
+│   ├── dashboard/       # User dashboard
+│   └── providers/       # Context providers
+├── components/          # React components
+│   ├── admin/           # Admin components
+│   ├── auth/            # Authentication components
+│   ├── dashboard/       # Dashboard components
+│   ├── mindmap/         # Mindmap components
+│   ├── pdf/             # PDF generation components
+│   └── ui/              # UI components
+├── lib/                 # Utility libraries
+│   ├── auth.ts          # Authentication utilities
+│   ├── mongodb.ts       # MongoDB connection
+│   ├── offers.ts        # Offer management
+│   └── openai.ts        # OpenAI integration
+├── types/               # TypeScript type definitions
+├── utils/               # Utility functions
+└── middleware.ts        # NextAuth middleware
 ```
 
-## 📚 Available Scripts
+## 🔐 Authentication Setup
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build production bundle
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
-- `npm run type-check` - Run TypeScript type checking
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
+1. **Create Google OAuth Application**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+   - Add authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
 
-## 🎨 Development Workflow
+2. **Configure NextAuth**
+   - The app uses NextAuth.js for authentication
+   - Google OAuth is configured as the primary provider
+   - Session management is handled automatically
 
-1. **Day 1-2**: Technical foundation ✅
-2. **Day 3-4**: Magical landing page
-3. **Day 5-7**: Progressive generation UI
-4. **Week 2**: Core generation engine + UI magic
-5. **Week 3**: Freemium strategy + conversion optimization
-6. **Week 4**: Premium features + export magic
-7. **Week 5**: Launch strategy + viral triggers
+## 💾 Database Setup
 
-## 📊 Key Metrics
+1. **MongoDB Atlas**
+   - Create a MongoDB Atlas cluster
+   - Get your connection string
+   - Add it to your `.env.local` file
 
-- **Conversion Rate**: Landing page to trial
-- **Generation Completion**: Users who complete offer generation
-- **Upgrade Rate**: Free to paid conversion
-- **Viral Coefficient**: Share-to-unlock performance
-- **User Retention**: Monthly active users
+2. **Database Collections**
+   The app automatically creates these collections:
+   - `users` - User accounts
+   - `user_profiles` - User profile data
+   - `offers` - Generated offers
+   - `admin_users` - Admin user permissions
+   - `purchased_offers` - Purchase records
+
+## 🔧 Configuration
+
+### Admin Setup
+
+1. Sign in to the application
+2. Navigate to `/admin-setup`
+3. Create your first admin user
+4. Access the admin panel at `/admin`
+
+### OpenAI Configuration
+
+- The app uses OpenAI's GPT models for offer generation
+- Configure your API key in the environment variables
+- Adjust model parameters in `src/lib/openai.ts`
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+1. **Connect your repository to Vercel**
+2. **Set environment variables** in Vercel dashboard
+3. **Deploy** - Vercel will automatically build and deploy your app
+
+### Environment Variables for Production
+
+Make sure to set all required environment variables in your production environment:
+
+- `MONGODB_URI`
+- `NEXTAUTH_URL` (your production URL)
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `OPENAI_API_KEY`
+
+## 📊 Usage
+
+### For Users
+
+1. **Sign up** with Google OAuth
+2. **Generate offers** by providing business context
+3. **Review and customize** generated components
+4. **Export to PDF** for professional presentation
+5. **Manage offers** in your dashboard
+
+### For Admins
+
+1. **Access admin panel** at `/admin`
+2. **View platform statistics** and user activity
+3. **Manage settings** and configuration
+4. **Monitor system health** and performance
+
+## 🔒 Security
+
+- **Authentication**: Secure Google OAuth integration
+- **Data Protection**: All data encrypted in transit and at rest
+- **API Security**: Rate limiting and input validation
+- **Session Management**: Secure session handling with NextAuth
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support, email support@slamoffer.com or join our community forum.
 
 ## 🙏 Acknowledgments
 
-- Based on Alex Hormozi's $100M Offers methodology
-- Built with modern web technologies for optimal performance
-- Designed for conversion optimization and user delight
+- OpenAI for providing the AI models
+- The Next.js team for the excellent framework
+- MongoDB for the robust database solution
+- All contributors and beta testers
 
 ---
 

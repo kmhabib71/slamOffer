@@ -1,230 +1,118 @@
 'use client'
 
-import React, { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { authService } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
 
-export const AdminSetup: React.FC = () => {
+export function AdminSetup() {
+  const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [error, setError] = useState('')
 
-  const checkCurrentUser = async () => {
-    const user = await authService.getCurrentUser()
-    setCurrentUser(user)
-    return user
-  }
+  const handleCreateAdmin = async () => {
+    if (!session?.user?.email) {
+      setError('You must be signed in to create an admin user')
+      return
+    }
 
-  const createAdminUser = async () => {
     setIsLoading(true)
+    setError('')
     setMessage('')
 
     try {
-      const user = await checkCurrentUser()
-      if (!user) {
-        setMessage('❌ Please log in first')
-        return
+      const result = await authService.createAdminUser(session.user.email, 'admin')
+
+      if (result) {
+        setMessage('Admin user created successfully!')
+      } else {
+        setError('Failed to create admin user')
       }
-
-      // Check if user is already admin
-      const { data: existingAdmin } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
-      if (existingAdmin) {
-        setMessage('✅ You are already an admin user!')
-        return
-      }
-
-      // Create admin user
-      const { error } = await supabase.from('admin_users').insert({
-        user_id: user.id,
-        role: 'super_admin',
-        permissions: {},
-      })
-
-      if (error) throw error
-
-      setMessage('🎉 Admin user created successfully! You can now access /admin')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating admin user:', error)
-      setMessage(`❌ Error: ${error.message}`)
+      setError('An error occurred while creating the admin user')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const setupDefaultTemplates = async () => {
+  const handleCheckAdminStatus = async () => {
+    if (!session?.user?.email) {
+      setError('You must be signed in to check admin status')
+      return
+    }
+
     setIsLoading(true)
+    setError('')
     setMessage('')
 
     try {
-      const user = await checkCurrentUser()
-      if (!user) {
-        setMessage('❌ Please log in first')
-        return
+      const isAdmin = await authService.isUserAdmin(session.user.email)
+
+      if (isAdmin) {
+        setMessage('You are already an admin user!')
+      } else {
+        setMessage('You are not an admin user')
       }
-
-      // Check if templates already exist
-      const { data: existingTemplates } = await supabase
-        .from('pdf_design_templates')
-        .select('id')
-        .limit(1)
-
-      if (existingTemplates && existingTemplates.length > 0) {
-        setMessage('✅ Templates already exist!')
-        return
-      }
-
-      // Create default templates
-      const defaultTemplates = [
-        {
-          name: 'Modern Business',
-          description: 'Clean and professional design perfect for business offers',
-          category: 'business',
-          status: 'published',
-          is_default: true,
-          created_by: user.id,
-        },
-        {
-          name: 'Minimalist',
-          description: 'Clean and simple design with focus on content',
-          category: 'minimal',
-          status: 'published',
-          is_default: false,
-          created_by: user.id,
-        },
-      ]
-
-      const { data: templates, error: templateError } = await supabase
-        .from('pdf_design_templates')
-        .insert(defaultTemplates)
-        .select()
-
-      if (templateError) throw templateError
-
-      // Create default styles
-      const defaultStyles = {
-        colors: {
-          primary: '#06B6D4',
-          secondary: '#8B5CF6',
-          accent: '#F59E0B',
-          background: '#FFFFFF',
-          text: '#0A0E1A',
-          muted: '#64748B',
-        },
-        fonts: {
-          primary: 'Helvetica',
-          secondary: 'Helvetica-Bold',
-          size: { small: 10, medium: 12, large: 16, xl: 20, xxl: 24 },
-        },
-        spacing: { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 },
-        borders: { width: 1, radius: 8, color: '#E2E8F0' },
-      }
-
-      for (const template of templates) {
-        await supabase.from('pdf_design_styles').insert({
-          template_id: template.id,
-          styles: defaultStyles,
-        })
-      }
-
-      setMessage('🎨 Default templates created successfully!')
-    } catch (error: any) {
-      console.error('Error creating templates:', error)
-      setMessage(`❌ Error: ${error.message}`)
+    } catch (error) {
+      console.error('Error checking admin status:', error)
+      setError('An error occurred while checking admin status')
     } finally {
       setIsLoading(false)
     }
   }
-
-  React.useEffect(() => {
-    checkCurrentUser()
-  }, [])
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">🚀 Admin Panel Setup</h1>
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Setup</h2>
 
-        {message && (
-          <div
-            className={`p-4 rounded-lg mb-6 ${
-              message.includes('❌') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-            }`}
-          >
-            {message}
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Current User Status</h2>
-            {currentUser ? (
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p>
-                  ✅ Logged in as: <strong>{currentUser.email}</strong>
-                </p>
-                <p>
-                  🆔 User ID: <code className="text-sm">{currentUser.id}</code>
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <p>⚠️ Not logged in. Please log in first.</p>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Step 1: Create Admin User</h2>
-            <p className="text-gray-600 mb-4">
-              Grant yourself admin access to manage PDF templates.
-            </p>
-            <Button
-              onClick={createAdminUser}
-              disabled={isLoading || !currentUser}
-              className="w-full"
-            >
-              {isLoading ? 'Creating...' : 'Make Me Admin'}
-            </Button>
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Step 2: Setup Default Templates</h2>
-            <p className="text-gray-600 mb-4">Create some default PDF templates to get started.</p>
-            <Button
-              onClick={setupDefaultTemplates}
-              disabled={isLoading || !currentUser}
-              variant="outline"
-              className="w-full"
-            >
-              {isLoading ? 'Creating...' : 'Create Default Templates'}
-            </Button>
-          </div>
-
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Next Steps:</h3>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
-              <li>Click "Make Me Admin" to get admin access</li>
-              <li>Click "Create Default Templates" to setup templates</li>
-              <li>
-                Visit{' '}
-                <a href="/admin" className="text-blue-600 hover:underline">
-                  /admin
-                </a>{' '}
-                to access the admin panel
-              </li>
-              <li>Use the PDF Designer to create custom templates</li>
-            </ol>
-          </div>
+      {session?.user && (
+        <div className="mb-6">
+          <p className="text-sm text-gray-600">
+            Current user: <span className="font-medium">{session.user.email}</span>
+          </p>
         </div>
+      )}
+
+      <div className="space-y-4">
+        <button
+          onClick={handleCheckAdminStatus}
+          disabled={isLoading}
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Checking...' : 'Check Admin Status'}
+        </button>
+
+        <button
+          onClick={handleCreateAdmin}
+          disabled={isLoading}
+          className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Creating...' : 'Create Admin User'}
+        </button>
+      </div>
+
+      {message && (
+        <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-6 p-4 bg-gray-50 rounded-md">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Instructions:</h3>
+        <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
+          <li>Make sure you're signed in with the email you want to make an admin</li>
+          <li>Click "Check Admin Status" to see if you're already an admin</li>
+          <li>If not, click "Create Admin User" to grant admin privileges</li>
+          <li>Once you're an admin, you can access the admin panel at /admin</li>
+        </ol>
       </div>
     </div>
   )
 }
-
-export default AdminSetup

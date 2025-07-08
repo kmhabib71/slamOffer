@@ -31,7 +31,7 @@ export function LogoutButton({
     try {
       setLoading(true)
 
-      // Sign out from Supabase and clear storage
+      // Sign out and clear storage
       await signOut()
 
       // Redirect to specified page

@@ -3,24 +3,36 @@
 import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Crown, Lock, ArrowRight, Target, CheckCircle } from 'lucide-react'
-import { CompleteGrandSlamOffer, GrandSlamOfferData, GrandSlamComponent, MindmapItem } from '@/types'
+import {
+  CompleteGrandSlamOffer,
+  GrandSlamOfferData,
+  GrandSlamComponent,
+  MindmapItem,
+} from '@/types'
 import { SlamOfferMindmap } from '@/components/slam-offer-mindmap'
 import { useAuth } from '@/app/providers/auth-provider'
 
-interface OfferMindmapViewProps {
-  offer: CompleteGrandSlamOffer
-  onPurchaseClick: (componentName?: string) => void
+// Client-safe version for components
+type ClientSafeOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_id'> & {
+  _id: string
+  user_id: string
 }
 
-export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewProps) {
+interface OfferMindmapViewProps {
+  offer: ClientSafeOffer
+  onPurchaseClick: (componentName?: string) => void
+  isPurchased?: boolean
+}
+
+export function OfferMindmapView({ offer, onPurchaseClick, isPurchased }: OfferMindmapViewProps) {
   const { user } = useAuth()
-  const isPro = user?.subscription_tier === 'pro'
+  const isPro = user?.profile?.subscription_tier === 'pro' || isPurchased
 
   // Helper function to get component color based on componentId
   const getComponentColor = (componentId: number): string => {
     const colors: Record<number, string> = {
       1: 'from-pink-500 to-rose-600',
-      2: 'from-orange-500 to-red-600', 
+      2: 'from-orange-500 to-red-600',
       3: 'from-blue-500 to-blue-700',
       4: 'from-emerald-500 to-green-600',
       5: 'from-amber-500 to-yellow-600',
@@ -35,16 +47,36 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
   }
 
   // Transform the CompleteGrandSlamOffer to GrandSlamOfferData format for the mindmap
-  const mindmapData: GrandSlamOfferData = useMemo(() => {
+  const mindmapData: Omit<GrandSlamOfferData, '_id'> & { _id: string } = useMemo(() => {
     const components: GrandSlamComponent[] = offer.components.map((component, index) => {
-      // Transform items to MindmapItem format
-      const items: MindmapItem[] = component.items.slice(0, component.previewCount).map((item, itemIndex) => ({
-        id: item.id,
-        title: item.title,
-        content: item.description,
-        isEditable: false, // Not editable in this context
-        order: itemIndex + 1,
-      }))
+      // For Solutions component, show both problems and solutions
+      let items: MindmapItem[] = []
+
+      if (component.componentName.toLowerCase().includes('solution')) {
+        // For Solutions component, combine problems and solutions
+        const itemsToShow = isPro
+          ? component.items
+          : component.items.slice(0, component.previewCount)
+        items = itemsToShow.map((item, itemIndex) => ({
+          id: item.id,
+          title: item.title,
+          content: item.description, // Show full description
+          isEditable: false,
+          order: itemIndex + 1,
+        }))
+      } else {
+        // For other components, show items normally
+        const itemsToShow = isPro
+          ? component.items
+          : component.items.slice(0, component.previewCount)
+        items = itemsToShow.map((item, itemIndex) => ({
+          id: item.id,
+          title: item.title,
+          content: item.description, // Show full description
+          isEditable: false,
+          order: itemIndex + 1,
+        }))
+      }
 
       return {
         id: `component-${component.componentId}`,
@@ -58,42 +90,43 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
     })
 
     return {
-      id: `offer-${offer.id}`,
+      _id: offer._id,
       title: `Grand Slam Offer - ${offer.businessContext.businessDescription.substring(0, 50)}...`,
       components,
     }
-  }, [offer, getComponentColor])
+  }, [offer, getComponentColor, isPro])
 
   return (
     <div className="p-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <motion.div
+        {/* <motion.div
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.6 }}
           className="w-16 h-16 bg-gradient-to-br from-violet-500 to-sky-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl"
         >
           <Target className="h-8 w-8 text-white" />
-        </motion.div>
-        
-        <h2 className="text-3xl font-bold text-slate-800 mb-4">
-          Your Grand Slam Offer Mindmap
-        </h2>
+        </motion.div> */}
+
+        {/* <h2 className="text-3xl font-bold text-slate-800 mb-4">Your Grand Slam Offer Mindmap</h2>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-6">
-          Explore your complete offer structure visually. Each component contains the strategies 
+          Explore your complete offer structure visually. Each component contains the strategies
           needed to transform your <span className="text-violet-600 font-bold">business idea</span>.
-        </p>
+        </p> */}
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
+        {/* <div className="grid md:grid-cols-4 gap-4 max-w-3xl mx-auto mb-8">
           <div className="bg-white/60 rounded-xl p-4 text-center">
             <div className="text-xl font-bold text-violet-600">{offer.components.length}</div>
             <div className="text-sm text-slate-600">Components</div>
           </div>
           <div className="bg-white/60 rounded-xl p-4 text-center">
             <div className="text-xl font-bold text-sky-600">
-              {offer.components.reduce((sum, comp) => sum + comp.previewCount, 0)}
+              {offer.components.reduce(
+                (sum, comp) => sum + (isPro ? comp.items.length : comp.previewCount),
+                0
+              )}
             </div>
             <div className="text-sm text-slate-600">{isPro ? 'Total' : 'Preview'} Items</div>
           </div>
@@ -107,7 +140,7 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
             <div className="text-xl font-bold text-amber-600">{offer.totalOfferValue}</div>
             <div className="text-sm text-slate-600">Estimated Value</div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Free User Notice */}
@@ -122,12 +155,19 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
               <Lock className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-amber-800 mb-2">
-                🗺️ Preview Mindmap Mode
-              </h3>
+              <h3 className="text-lg font-bold text-amber-800 mb-2">🗺️ Preview Mindmap Mode</h3>
               <p className="text-amber-700 mb-4">
-                This mindmap shows your 3 preview items per component. The complete version includes all 
-                <span className="font-bold"> {offer.components.reduce((sum, comp) => sum + (comp.totalAvailable || 12), 0)} strategies</span> 
+                This mindmap shows your{' '}
+                {offer.components.reduce((sum, comp) => sum + comp.previewCount, 0)} preview items.
+                The complete version includes all
+                <span className="font-bold">
+                  {' '}
+                  {offer.components.reduce(
+                    (sum, comp) => sum + (comp.totalAvailable || 12),
+                    0
+                  )}{' '}
+                  strategies
+                </span>
                 with detailed implementation plans and visual connections.
               </p>
               <button
@@ -160,7 +200,7 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
               {!isPro && (
                 <div className="flex items-center space-x-1">
                   <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                  <span>Locked Content</span>
+                  <span>Preview Mode</span>
                 </div>
               )}
             </div>
@@ -169,63 +209,7 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
 
         {/* Mindmap Display */}
         <div className="relative" style={{ height: '800px' }}>
-          <SlamOfferMindmap data={mindmapData} />
-          
-          {/* Overlay for locked content (Free users) */}
-          {!isPro && (
-            <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl p-8 text-center max-w-md mx-4"
-              >
-                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-sky-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                  <Crown className="h-8 w-8 text-white" />
-                </div>
-                
-                <h3 className="text-2xl font-bold text-slate-800 mb-4">
-                  Complete Mindmap Available
-                </h3>
-                
-                <p className="text-slate-600 mb-6 leading-relaxed">
-                  Unlock the full interactive mindmap with all {offer.components.reduce((sum, comp) => sum + (comp.totalAvailable || 12), 0)} strategies, 
-                  detailed connections, and advanced visualization features.
-                </p>
-                
-                <div className="space-y-3 text-sm text-left mb-6">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>Complete strategy network visualization</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>Interactive component relationships</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>Advanced editing and customization</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span>Professional export capabilities</span>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => onPurchaseClick()}
-                  className="bg-gradient-to-r from-violet-500 to-sky-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 inline-flex items-center space-x-3 w-full justify-center"
-                >
-                  <Crown className="h-6 w-6" />
-                  <span>Unlock Full Mindmap</span>
-                  <ArrowRight className="h-5 w-5" />
-                </button>
-                
-                <p className="text-xs text-slate-500 mt-4">
-                  ✨ Instant access • 🎯 All strategies included • 📊 Advanced visualizations
-                </p>
-              </motion.div>
-            </div>
-          )}
+          <SlamOfferMindmap data={mindmapData as any} />
         </div>
       </div>
 
@@ -238,21 +222,30 @@ export function OfferMindmapView({ offer, onPurchaseClick }: OfferMindmapViewPro
               <span className="text-white font-bold text-sm">1</span>
             </div>
             <h5 className="font-semibold text-slate-800 mb-2">Explore Components</h5>
-            <p className="text-slate-600">Click on any component to expand and view its strategies. Each component represents a crucial part of your offer.</p>
+            <p className="text-slate-600">
+              Click on any component to expand and view its strategies. Each component represents a
+              crucial part of your offer.
+            </p>
           </div>
           <div className="bg-white rounded-lg p-4">
             <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center mb-3">
               <span className="text-white font-bold text-sm">2</span>
             </div>
             <h5 className="font-semibold text-slate-800 mb-2">Navigate Relationships</h5>
-            <p className="text-slate-600">Follow the connections between components to understand how each strategy builds upon the others.</p>
+            <p className="text-slate-600">
+              Follow the connections between components to understand how each strategy builds upon
+              the others.
+            </p>
           </div>
           <div className="bg-white rounded-lg p-4">
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center mb-3">
               <span className="text-white font-bold text-sm">3</span>
             </div>
             <h5 className="font-semibold text-slate-800 mb-2">Zoom & Pan</h5>
-            <p className="text-slate-600">Use mouse controls to zoom in/out and pan around the mindmap for detailed exploration of your offer structure.</p>
+            <p className="text-slate-600">
+              Use mouse controls to zoom in/out and pan around the mindmap for detailed exploration
+              of your offer structure.
+            </p>
           </div>
         </div>
       </div>

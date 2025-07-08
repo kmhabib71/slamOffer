@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase'
-import { GrandSlamOfferData, PDFTemplateData } from '@/types'
+import { authService } from '@/lib/auth'
+import { GrandSlamOfferData, PDFTemplateData, ObjectId } from '@/types'
 
 export interface EnhancedPDFOptions {
   userId: string
@@ -21,33 +21,12 @@ export class EnhancedPDFGenerator {
    */
   static async getUserTemplate(userId: string, offerId?: string): Promise<PDFTemplateData | null> {
     try {
-      // Use the database function to get user's selected template
-      const { data, error } = await supabase.rpc('get_user_pdf_template', {
-        user_uuid: userId,
-        offer_uuid: offerId || null,
-      })
-
-      if (error) {
-        console.error('Error fetching user template:', error)
-        return null
-      }
-
-      if (!data || data.length === 0) {
-        // Fallback to default template
-        return this.getDefaultTemplate()
-      }
-
-      const templateData = data[0]
-      return {
-        id: templateData.template_id,
-        name: templateData.template_name,
-        category: templateData.template_category,
-        styles: templateData.styles,
-        components: Array.isArray(templateData.components) ? templateData.components : [],
-      }
+      // For now, return the hardcoded default template since we're not using Supabase anymore
+      // This would need to be implemented with MongoDB if PDF templates are needed
+      return this.getHardcodedDefault()
     } catch (error) {
-      console.error('Error in getUserTemplate:', error)
-      return this.getDefaultTemplate()
+      console.error('Error getting user PDF template:', error)
+      return null
     }
   }
 
@@ -56,34 +35,8 @@ export class EnhancedPDFGenerator {
    */
   static async getDefaultTemplate(): Promise<PDFTemplateData> {
     try {
-      const { data, error } = await supabase
-        .from('pdf_design_templates')
-        .select(
-          `
-          id,
-          name,
-          category,
-          pdf_design_styles (
-            styles
-          )
-        `
-        )
-        .eq('is_default', true)
-        .eq('status', 'published')
-        .single()
-
-      if (error || !data) {
-        // Return hardcoded default if nothing in database
-        return this.getHardcodedDefault()
-      }
-
-      return {
-        id: data.id,
-        name: data.name,
-        category: data.category,
-        styles: data.pdf_design_styles?.[0]?.styles || this.getHardcodedDefault().styles,
-        components: [],
-      }
+      // Return hardcoded default since we're not using Supabase anymore
+      return this.getHardcodedDefault()
     } catch (error) {
       console.error('Error fetching default template:', error)
       return this.getHardcodedDefault()
@@ -95,7 +48,7 @@ export class EnhancedPDFGenerator {
    */
   static getHardcodedDefault(): PDFTemplateData {
     return {
-      id: 'default',
+      _id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: 'Default Template',
       category: 'business',
       styles: {
@@ -140,32 +93,8 @@ export class EnhancedPDFGenerator {
    */
   static async getAvailableTemplates(): Promise<PDFTemplateData[]> {
     try {
-      const { data, error } = await supabase
-        .from('pdf_design_templates')
-        .select(
-          `
-          id,
-          name,
-          description,
-          category,
-          preview_image,
-          pdf_design_styles (
-            styles
-          )
-        `
-        )
-        .eq('status', 'published')
-        .order('name')
-
-      if (error) throw error
-
-      return (data || []).map(template => ({
-        id: template.id,
-        name: template.name,
-        category: template.category,
-        styles: template.pdf_design_styles?.[0]?.styles || this.getHardcodedDefault().styles,
-        components: [],
-      }))
+      // Return hardcoded default since we're not using Supabase anymore
+      return [this.getHardcodedDefault()]
     } catch (error) {
       console.error('Error fetching available templates:', error)
       return [this.getHardcodedDefault()]
@@ -181,21 +110,14 @@ export class EnhancedPDFGenerator {
     offerId?: string
   ): Promise<boolean> {
     try {
-      const { error } = await supabase.from('user_pdf_selections').upsert(
-        {
-          user_id: userId,
-          template_id: templateId,
-          offer_id: offerId || null,
-        },
-        {
-          onConflict: offerId ? 'user_id,offer_id' : 'user_id',
-        }
-      )
-
-      if (error) throw error
+      // This would need to be implemented with MongoDB if PDF selections are needed
+      console.log('Saving PDF selection for user:', userId, {
+        template_id: templateId,
+        offer_id: offerId,
+      })
       return true
     } catch (error) {
-      console.error('Error saving template selection:', error)
+      console.error('Error saving PDF selection:', error)
       return false
     }
   }
@@ -203,7 +125,7 @@ export class EnhancedPDFGenerator {
   /**
    * Generate dynamic styles object for PDF rendering
    */
-  static generatePDFStyles(template: PDFTemplateData) {
+  static generatePDFStyles(template: PDFTemplateData): any {
     const { colors, fonts, spacing, borders } = template.styles
 
     return {
@@ -319,7 +241,8 @@ export class EnhancedPDFGenerator {
    */
   static async trackPDFGeneration(userId: string, templateId: string, offerId?: string) {
     try {
-      await supabase.from('analytics_events').insert({
+      // This would need to be implemented with MongoDB if analytics tracking is needed
+      console.log('Analytics event:', {
         user_id: userId,
         event_name: 'pdf_generated',
         properties: {
@@ -329,7 +252,7 @@ export class EnhancedPDFGenerator {
         },
       })
     } catch (error) {
-      console.error('Error tracking PDF generation:', error)
+      console.error('Error tracking analytics event:', error)
     }
   }
 }

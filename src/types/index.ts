@@ -1,10 +1,45 @@
+// Use string type for client-side compatibility, but allow MongoDB ObjectId on server
+export type ObjectId = string
+
 // User and Authentication Types
 export interface User {
-  id: string
+  _id: ObjectId
   email: string
   subscription_tier: 'free' | 'one_time' | 'pro'
-  created_at: string
-  updated_at: string
+  created_at: Date
+  updated_at: Date
+}
+
+// User Profile for MongoDB
+export interface UserProfile {
+  _id: ObjectId
+  user_id: ObjectId
+  email: string
+  subscription_tier: 'free' | 'one_time' | 'pro'
+  credits_used: number
+  created_at: Date
+  updated_at: Date
+}
+
+// Admin User for MongoDB
+export interface AdminUser {
+  _id: ObjectId
+  email: string
+  role: 'admin' | 'super_admin'
+  created_at: Date
+  updated_at: Date
+}
+
+// Purchase Record for MongoDB
+export interface PurchasedOffer {
+  _id: ObjectId
+  user_id: ObjectId
+  offer_id: ObjectId
+  component_name: string
+  offer_title: string
+  purchased_at: Date
+  price: number
+  payment_method: string
 }
 
 // Offer Generation Types
@@ -29,8 +64,8 @@ export interface OfferSection {
 }
 
 export interface GeneratedOffer {
-  id: string
-  user_id: string
+  _id: ObjectId
+  user_id: ObjectId
   title: string
   overall_score: number
   sections: {
@@ -42,8 +77,8 @@ export interface GeneratedOffer {
     offer_naming: OfferSection
     bonus_section: OfferSection
   }
-  created_at: string
-  updated_at: string
+  created_at: Date
+  updated_at: Date
 }
 
 // AI Generation Types
@@ -84,7 +119,7 @@ export interface GrandSlamComponent {
 }
 
 export interface GrandSlamOfferData {
-  id: string
+  _id: ObjectId
   title: string
   components: GrandSlamComponent[]
 }
@@ -185,7 +220,7 @@ export interface GenerationApiResponse extends ApiResponse<GeneratedOffer> {
 
 // PDF Template Types
 export interface PDFTemplateData {
-  id: string
+  _id: ObjectId
   name: string
   category: 'business' | 'minimal' | 'corporate' | 'creative' | 'technical' | 'luxury'
   styles: {
@@ -231,11 +266,11 @@ export interface PDFTemplateData {
 }
 
 export interface PDFTemplateSelection {
-  id: string
-  user_id: string
-  template_id: string
-  offer_id?: string
-  selected_at: string
+  _id: ObjectId
+  user_id: ObjectId
+  template_id: ObjectId
+  offer_id?: ObjectId
+  selected_at: Date
 }
 
 // Export Types
@@ -301,13 +336,14 @@ export interface CompleteOfferComponent {
 }
 
 export interface CompleteGrandSlamOffer {
-  id: string
+  _id: ObjectId
+  user_id: ObjectId
   businessContext: {
     businessDescription: string
   }
   components: CompleteOfferComponent[]
   totalOfferValue: string
-  createdAt: string
+  createdAt: Date
   metadata: {
     tokenUsage?: number
     generationTime?: number
@@ -323,6 +359,7 @@ export interface CompleteOfferRequest {
   }
   userTier: 'free' | 'pro'
   generateComplete?: boolean // For pro users
+  componentName?: string // Optional component name for individual component unlocking
 }
 
 export const COMPONENT_NAMES = {
@@ -342,8 +379,15 @@ export const COMPONENT_NAMES = {
 export type ComponentId = keyof typeof COMPONENT_NAMES
 
 export interface AuthUser {
-  id: string
+  _id: ObjectId
   email: string
   subscription_tier: 'free' | 'pro'
-  // ... existing fields ...
+  created_at: Date
+  updated_at: Date
+}
+
+export interface GenerationAnimationProps {
+  businessContext: {
+    businessDescription: string
+  }
 }

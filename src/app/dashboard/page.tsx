@@ -25,16 +25,24 @@ import { useAuth } from '@/app/providers/auth-provider'
 import { useRouter } from 'next/navigation'
 import { CompleteGrandSlamOffer, CompleteOfferRequest, CompleteOfferComponent } from '@/types'
 import { GenerationAnimation } from '@/components/dashboard/generation-animation'
+import { PackingAnimation } from '@/components/dashboard/packing-animation'
+import { RealTimePackingAnimation } from '@/components/dashboard/real-time-packing-animation'
+import { DashboardNavigation } from '@/components/dashboard/dashboard-navigation'
 import { OfferResults } from '@/components/dashboard/offer-results'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'
-import { saveGrandSlamOffer } from '@/lib/offers'
+
 import { AuthGuard } from '@/components/auth/auth-guard'
 import { useTestMode } from '@/hooks/use-test-mode'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
 
 interface BusinessContext {
   businessDescription: string
+}
+
+// Client-safe version of CompleteGrandSlamOffer without ObjectId
+type ClientCompleteGrandSlamOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_id'> & {
+  _id: string
+  user_id: string
 }
 
 export default function DashboardPage() {
@@ -47,29 +55,26 @@ export default function DashboardPage() {
     businessDescription: '',
   })
 
-  const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'results'>('input')
-  const [generatedOffer, setGeneratedOffer] = useState<CompleteGrandSlamOffer | null>(null)
+  const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'packing' | 'results'>(
+    'input'
+  )
+  const [generatedOffer, setGeneratedOffer] = useState<ClientCompleteGrandSlamOffer | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isPacking, setIsPacking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'mindmap' | 'text'>('text')
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [selectedComponent, setSelectedComponent] = useState<string | undefined>(undefined)
+  const [isPurchased, setIsPurchased] = useState(false)
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user?.id) return
-
-      const { data } = await supabase
-        .from('admin_users')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-
-      setIsAdmin(!!data)
+    // Check if user has admin role
+    if (user?.role === 'admin') {
+      setIsAdmin(true)
+    } else {
+      setIsAdmin(false)
     }
-
-    checkAdminStatus()
-  }, [user?.id])
+  }, [user?.role])
 
   const handleInputChange = (value: string) => {
     setBusinessContext({ businessDescription: value })
@@ -94,7 +99,8 @@ export default function DashboardPage() {
       const mockData = {
         success: true,
         data: {
-          id: 'mock-offer-' + Date.now(),
+          _id: 'mock-offer-id-' + Date.now(),
+          user_id: user!._id,
           businessContext: businessContext,
           components: [
             {
@@ -158,7 +164,7 @@ export default function DashboardPage() {
             },
           ] as CompleteOfferComponent[],
           totalOfferValue: '$10,000',
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
           metadata: {
             tokenUsage: 0,
             generationTime: 0,
@@ -175,23 +181,31 @@ export default function DashboardPage() {
 
         if (data.success && data.data) {
           setGeneratedOffer(data.data)
+          setIsPurchased(false) // Initial generation is not purchased
           setCurrentStep('results')
 
           // Save the offer to database with enhanced error handling
           try {
-            if (!user?.id) {
+            if (!user?._id) {
               console.error('Cannot save offer: User ID is missing')
               setError('Failed to save offer: User not authenticated')
               return
             }
 
-            const saveResult = await saveGrandSlamOffer(
-              user.id,
-              data.data,
-              user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free'
-            )
+            const saveResponse = await fetch('/api/offers/save', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                offerData: data.data,
+                userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
+              }),
+            })
 
-            if (!saveResult.success) {
+            const saveResult = await saveResponse.json()
+
+            if (!saveResponse.ok || !saveResult.success) {
               console.error('Failed to save offer to database:', saveResult.error)
               if (saveResult.error && !saveResult.error.includes('duplicate')) {
                 setError(`Failed to save offer: ${saveResult.error}`)
@@ -236,23 +250,31 @@ export default function DashboardPage() {
 
         if (data.success && data.data) {
           setGeneratedOffer(data.data)
+          setIsPurchased(false) // Initial generation is not purchased
           setCurrentStep('results')
 
           // Save the offer to database with enhanced error handling
           try {
-            if (!user?.id) {
+            if (!user?._id) {
               console.error('Cannot save offer: User ID is missing')
               setError('Failed to save offer: User not authenticated')
               return
             }
 
-            const saveResult = await saveGrandSlamOffer(
-              user.id,
-              data.data,
-              user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free'
-            )
+            const saveResponse = await fetch('/api/offers/save', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                offerData: data.data,
+                userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
+              }),
+            })
 
-            if (!saveResult.success) {
+            const saveResult = await saveResponse.json()
+
+            if (!saveResponse.ok || !saveResult.success) {
               console.error('Failed to save offer to database:', saveResult.error)
               if (saveResult.error && !saveResult.error.includes('duplicate')) {
                 setError(`Failed to save offer: ${saveResult.error}`)
@@ -280,10 +302,45 @@ export default function DashboardPage() {
     setShowPurchaseModal(true)
   }
 
+  const handlePurchaseComplete = async () => {
+    setShowPurchaseModal(false)
+    setIsPacking(true)
+    setCurrentStep('packing')
+  }
+
+  const handleRealTimePackingComplete = (data: any) => {
+    console.log('Real-time packing complete:', data)
+    console.log('Components in response:', data?.components?.length)
+
+    // Convert the server response to client-safe format
+    const fullOffer: ClientCompleteGrandSlamOffer = {
+      ...data,
+      _id: data._id.toString(),
+      user_id: data.user_id.toString(),
+    }
+
+    console.log('Full offer after conversion:', fullOffer)
+    console.log('Components after conversion:', fullOffer.components?.length)
+
+    // Update the current offer with the full version
+    setGeneratedOffer(fullOffer)
+    setIsPurchased(true)
+    setIsPacking(false)
+    setCurrentStep('results')
+  }
+
+  const handleRealTimePackingError = (error: string) => {
+    console.error('Real-time packing error:', error)
+    setError(error)
+    setIsPacking(false)
+    setCurrentStep('results')
+  }
+
   const handleStartOver = () => {
     setCurrentStep('input')
     setGeneratedOffer(null)
     setError(null)
+    setIsPurchased(false)
     setBusinessContext({
       businessDescription: '',
     })
@@ -291,55 +348,25 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#F9FAFB] dotted-bg">
+      <div className="min-h-screen relative bg-[#F9FAFB] dotted-bg">
+        {/* Animated Connecting Lines */}
+        <div className="fixed inset-0 z-0 overflow-hidden">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-px bg-gradient-to-b from-transparent via-violet-300/30 to-transparent"
+              style={{
+                left: `${20 + i * 15}%`,
+                height: '100vh',
+              }}
+              initial={{ opacity: 0, scaleY: 0 }}
+              animate={{ opacity: 1, scaleY: 1 }}
+              transition={{ duration: 2, delay: i * 0.3, repeat: Infinity, repeatType: 'reverse' }}
+            />
+          ))}
+        </div>
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
-          <nav className="mx-auto max-w-7xl flex items-center justify-between px-6 py-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <span className="text-xl font-bold text-slate-800">GrandSlamGenerator.ai</span>
-                <div className="text-xs text-slate-600">Dashboard</div>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/previous-offers')}
-                className="flex items-center space-x-2 px-4 py-2 bg-white/60 hover:bg-white/80 border border-slate-200 rounded-lg transition-all duration-200 hover:shadow-md text-slate-700 hover:text-slate-900"
-              >
-                <History className="h-4 w-4" />
-                <span className="text-sm font-medium">Previous Offers</span>
-              </button>
-
-              <div className="flex items-center space-x-2 text-slate-700">
-                <div className="w-8 h-8 bg-gradient-to-br from-violet-100 to-sky-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-violet-700">
-                    {user?.email?.[0]?.toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">{user?.email}</div>
-                  <div className="text-xs text-slate-500 flex items-center space-x-1">
-                    {user?.profile?.subscription_tier === 'pro' ? (
-                      <>
-                        <Crown className="h-3 w-3 text-amber-500" />
-                        <span>Pro User</span>
-                      </>
-                    ) : (
-                      <>
-                        <Star className="h-3 w-3 text-slate-400" />
-                        <span>Free ({user?.profile?.credits_remaining || 0} credits)</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
-        </header>
+        <DashboardNavigation excludeItems={['Generate Offer']} />
 
         {/* Main Content */}
         <main className="container mx-auto px-6 py-8">
@@ -476,6 +503,15 @@ export default function DashboardPage() {
               <GenerationAnimation businessContext={businessContext} />
             )}
 
+            {currentStep === 'packing' && generatedOffer && (
+              <RealTimePackingAnimation
+                businessContext={generatedOffer.businessContext}
+                offerId={generatedOffer._id}
+                onComplete={handleRealTimePackingComplete}
+                onError={handleRealTimePackingError}
+              />
+            )}
+
             {currentStep === 'results' && generatedOffer && (
               <OfferResults
                 offer={generatedOffer}
@@ -483,6 +519,7 @@ export default function DashboardPage() {
                 onViewModeChange={setViewMode}
                 onPurchaseClick={handlePurchaseClick}
                 onStartOver={handleStartOver}
+                isPurchased={isPurchased}
               />
             )}
           </AnimatePresence>
@@ -492,7 +529,8 @@ export default function DashboardPage() {
           <PurchaseModal
             isOpen={showPurchaseModal}
             onClose={() => setShowPurchaseModal(false)}
-            componentName={selectedComponent}
+            offerTitle={selectedComponent || 'Complete Offer'}
+            onPurchaseComplete={handlePurchaseComplete}
           />
         )}
       </div>

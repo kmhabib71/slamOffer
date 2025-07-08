@@ -1,4 +1,5 @@
-import { supabase } from './supabase'
+import { ObjectId } from 'mongodb'
+import clientPromise from './mongodb'
 import { CompleteGrandSlamOffer } from '@/types'
 
 export interface SavedGrandSlamOffer {
@@ -34,7 +35,7 @@ function generateOfferTitle(businessDescription: string): string {
   return cleanDesc.length > 50 ? cleanDesc.substring(0, 47) + '...' : cleanDesc
 }
 
-// Save a generated offer to Supabase
+// Save a generated offer to MongoDB
 export async function saveGrandSlamOffer(
   userId: string,
   offer: CompleteGrandSlamOffer,
@@ -49,53 +50,53 @@ export async function saveGrandSlamOffer(
       return { success: false, error: 'Invalid offer data' }
     }
 
+    const client = await clientPromise
+    const db = client.db()
     const title = generateOfferTitle(offer.businessContext.businessDescription)
 
     // Check if user exists before saving
-    const { data: userExists, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single()
-
-    if (userError || !userExists) {
-      console.error('User validation error:', userError)
+    const userExists = await db.collection('users').findOne({ _id: new ObjectId(userId) })
+    if (!userExists) {
+      console.error('User validation error: User not found')
       return { success: false, error: 'User not found or unauthorized' }
     }
 
-    // Attempt to save the offer
-    const { data, error } = await supabase
-      .from('grand_slam_offers')
-      .insert({
-        user_id: userId,
-        title,
-        business_description: offer.businessContext.businessDescription,
-        offer_data: offer,
-        total_offer_value: offer.totalOfferValue || '0',
-        user_tier: userTier,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      // Handle specific database errors
-      if (error.code === '23505') {
-        return { success: false, error: 'Duplicate offer found' }
-      } else if (error.code === '42P01') {
-        return { success: false, error: 'Database table not found - please contact support' }
-      } else if (error.code === '42501') {
-        return { success: false, error: 'Permission denied - please check your account status' }
-      }
-
-      console.error('Database error saving offer:', error)
-      return { success: false, error: `Database error: ${error.message}` }
+    // Create the offer document
+    const now = new Date()
+    const offerDoc = {
+      _id: new ObjectId(),
+      user_id: userId,
+      title,
+      business_description: offer.businessContext.businessDescription,
+      offer_data: offer,
+      total_offer_value: offer.totalOfferValue || '0',
+      user_tier: userTier,
+      isPublic: false, // Default to private
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
     }
 
-    if (!data) {
-      return { success: false, error: 'No data returned after save' }
+    // Insert the offer
+    const result = await db.collection('grand_slam_offers').insertOne(offerDoc)
+
+    if (!result.acknowledged) {
+      return { success: false, error: 'Failed to save offer' }
     }
 
-    return { success: true, data: data as SavedGrandSlamOffer }
+    // Return the saved offer with string ID
+    const savedOffer: SavedGrandSlamOffer = {
+      id: result.insertedId.toString(),
+      user_id: userId,
+      title,
+      business_description: offer.businessContext.businessDescription,
+      offer_data: offer,
+      total_offer_value: offer.totalOfferValue || '0',
+      user_tier: userTier,
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    }
+
+    return { success: true, data: savedOffer }
   } catch (error) {
     console.error('Unexpected error saving offer:', error)
     return {
@@ -116,37 +117,29 @@ export async function getUserOffers(
       await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
     }
 
-    const { data, error } = await supabase
-      .from('grand_slam_offers')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    const client = await clientPromise
+    const db = client.db()
 
-    if (error) {
-      console.error('Error fetching offers:', error)
+    const offers = await db
+      .collection('grand_slam_offers')
+      .find({ user_id: userId })
+      .sort({ created_at: -1 })
+      .toArray()
 
-      // If this is a PostgreSQL error that might be temporary, retry up to 3 times
-      if (
-        retryCount < 3 &&
-        (error.message.includes('connection') ||
-          error.message.includes('timeout') ||
-          error.message.includes('temporarily unavailable'))
-      ) {
-        console.log(`Retrying getUserOffers (attempt ${retryCount + 1})...`)
-        return getUserOffers(userId, retryCount + 1)
-      }
+    // Convert MongoDB documents to SavedGrandSlamOffer format
+    const formattedOffers: SavedGrandSlamOffer[] = offers.map(offer => ({
+      id: offer._id.toString(),
+      user_id: offer.user_id,
+      title: offer.title,
+      business_description: offer.business_description,
+      offer_data: offer.offer_data,
+      total_offer_value: offer.total_offer_value,
+      user_tier: offer.user_tier,
+      created_at: offer.created_at,
+      updated_at: offer.updated_at,
+    }))
 
-      return {
-        success: false,
-        error: error.message,
-      }
-    }
-
-    if (!data) {
-      return { success: true, data: [] }
-    }
-
-    return { success: true, data: data as SavedGrandSlamOffer[] }
+    return { success: true, data: formattedOffers }
   } catch (error) {
     console.error('Error fetching offers:', error)
 
@@ -163,27 +156,149 @@ export async function getUserOffers(
   }
 }
 
-// Get a specific offer by ID
+// Get a specific offer by ID (with access control)
 export async function getOfferById(
+  offerId: string,
+  userEmail: string | null
+): Promise<{ success: boolean; data?: SavedGrandSlamOffer; error?: string }> {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+
+    // First, find the offer in grand_slam_offers
+    const offer = await db.collection('grand_slam_offers').findOne({ _id: new ObjectId(offerId) })
+
+    if (!offer) {
+      return { success: false, error: 'Offer not found' }
+    }
+
+    // Get the owner's email
+    const owner = await db.collection('users').findOne({ _id: new ObjectId(offer.user_id) })
+
+    if (!owner) {
+      return { success: false, error: 'Offer owner not found' }
+    }
+
+    // Check access permissions
+    const isOwner = userEmail === owner.email
+    const isPublic = offer.isPublic === true
+
+    if (!isOwner && !isPublic) {
+      return { success: false, error: 'Access denied' }
+    }
+
+    // Check if the owner has purchased this offer (for full content)
+    const ownerPurchased = await db.collection('purchased_offers').findOne({
+      userId: owner.email,
+      offerId: offerId, // Use the main document ID, not the nested offer_data._id
+      status: 'active',
+    })
+
+    let finalOfferData = offer.offer_data
+
+    // If owner has purchased, use the full content from purchased_offers
+    if (ownerPurchased) {
+      finalOfferData = ownerPurchased.offerData
+    }
+
+    // Convert MongoDB document to SavedGrandSlamOffer format
+    const formattedOffer: SavedGrandSlamOffer & { owner_email: string; isPublic: boolean } = {
+      id: offer._id.toString(),
+      user_id: offer.user_id,
+      title: offer.title,
+      business_description: offer.business_description,
+      offer_data: finalOfferData,
+      total_offer_value: offer.total_offer_value,
+      user_tier: offer.user_tier,
+      created_at: offer.created_at,
+      updated_at: offer.updated_at,
+      owner_email: owner.email,
+      isPublic: offer.isPublic || false,
+    }
+
+    return { success: true, data: formattedOffer }
+  } catch (error) {
+    console.error('Error fetching offer:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    }
+  }
+}
+
+// Get a specific offer by ID for owner only (backwards compatibility)
+export async function getOfferByIdForOwner(
   offerId: string,
   userId: string
 ): Promise<{ success: boolean; data?: SavedGrandSlamOffer; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('grand_slam_offers')
-      .select('*')
-      .eq('id', offerId)
-      .eq('user_id', userId)
-      .single()
+    const client = await clientPromise
+    const db = client.db()
 
-    if (error) {
-      console.error('Error fetching offer:', error)
-      return { success: false, error: error.message }
+    const offer = await db
+      .collection('grand_slam_offers')
+      .findOne({ _id: new ObjectId(offerId), user_id: userId })
+
+    if (!offer) {
+      return { success: false, error: 'Offer not found' }
     }
 
-    return { success: true, data: data as SavedGrandSlamOffer }
+    // Convert MongoDB document to SavedGrandSlamOffer format
+    const formattedOffer: SavedGrandSlamOffer = {
+      id: offer._id.toString(),
+      user_id: offer.user_id,
+      title: offer.title,
+      business_description: offer.business_description,
+      offer_data: offer.offer_data,
+      total_offer_value: offer.total_offer_value,
+      user_tier: offer.user_tier,
+      created_at: offer.created_at,
+      updated_at: offer.updated_at,
+    }
+
+    return { success: true, data: formattedOffer }
   } catch (error) {
     console.error('Error fetching offer:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    }
+  }
+}
+
+// Update offer visibility (public/private)
+export async function updateOfferVisibility(
+  offerId: string,
+  userEmail: string,
+  isPublic: boolean
+): Promise<{ success: boolean; data?: { isPublic: boolean }; error?: string }> {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+
+    // First, find the user by email to get their ID
+    const user = await db.collection('users').findOne({ email: userEmail })
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const result = await db.collection('grand_slam_offers').updateOne(
+      { _id: new ObjectId(offerId), user_id: user._id.toString() },
+      {
+        $set: {
+          isPublic: isPublic,
+          updated_at: new Date().toISOString(),
+        },
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return { success: false, error: 'Offer not found or access denied' }
+    }
+
+    return { success: true, data: { isPublic } }
+  } catch (error) {
+    console.error('Error updating offer visibility:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -194,18 +309,24 @@ export async function getOfferById(
 // Delete an offer
 export async function deleteOffer(
   offerId: string,
-  userId: string
+  userEmail: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase
-      .from('grand_slam_offers')
-      .delete()
-      .eq('id', offerId)
-      .eq('user_id', userId)
+    const client = await clientPromise
+    const db = client.db()
 
-    if (error) {
-      console.error('Error deleting offer:', error)
-      return { success: false, error: error.message }
+    // First, find the user by email to get their ID
+    const user = await db.collection('users').findOne({ email: userEmail })
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const result = await db
+      .collection('grand_slam_offers')
+      .deleteOne({ _id: new ObjectId(offerId), user_id: user._id.toString() })
+
+    if (result.deletedCount === 0) {
+      return { success: false, error: 'Offer not found or unauthorized' }
     }
 
     return { success: true }
@@ -221,22 +342,31 @@ export async function deleteOffer(
 // Update offer title
 export async function updateOfferTitle(
   offerId: string,
-  userId: string,
+  userEmail: string,
   newTitle: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase
-      .from('grand_slam_offers')
-      .update({
-        title: newTitle,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', offerId)
-      .eq('user_id', userId)
+    const client = await clientPromise
+    const db = client.db()
 
-    if (error) {
-      console.error('Error updating offer title:', error)
-      return { success: false, error: error.message }
+    // First, find the user by email to get their ID
+    const user = await db.collection('users').findOne({ email: userEmail })
+    if (!user) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const result = await db.collection('grand_slam_offers').updateOne(
+      { _id: new ObjectId(offerId), user_id: user._id.toString() },
+      {
+        $set: {
+          title: newTitle,
+          updated_at: new Date().toISOString(),
+        },
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return { success: false, error: 'Offer not found or unauthorized' }
     }
 
     return { success: true }

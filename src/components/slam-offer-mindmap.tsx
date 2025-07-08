@@ -15,14 +15,11 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import {
-  Eye,
-  FileText,
   Edit2,
   Save,
   X,
   Star,
   Target,
-  Zap,
   Heart,
   AlertTriangle,
   Lightbulb,
@@ -37,6 +34,7 @@ import {
 } from 'lucide-react'
 import { PDFExportButton } from '@/components/pdf/pdf-export-button'
 import { GrandSlamOfferData, GrandSlamComponent, MindmapItem } from '@/types'
+// ObjectId is now defined as a string type in types/index.ts
 
 // Interface for mindmap data structure
 interface SlamOfferData {
@@ -153,7 +151,7 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
       case 'child':
         return 'w-[280px] h-[70px] p-4' // Increased width further to show full text like "Scarcity & Urgency"
       case 'subchild':
-        return 'w-[180px] h-[50px] p-3'
+        return 'w-[320px] h-[80px] p-3'
       default:
         return 'w-[160px] h-[60px] p-4'
     }
@@ -209,11 +207,15 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
           <div className="flex items-center min-w-0 flex-1">
             {getIcon()}
             <span
-              className={`font-medium whitespace-nowrap ${
-                data.level === 'child' ? 'text-base' : 'text-sm'
-              } ${data.level === 'child' ? '' : 'overflow-hidden text-ellipsis'}`}
+              className={`font-medium ${
+                data.level === 'subchild'
+                  ? 'text-xs leading-tight'
+                  : data.level === 'child'
+                    ? 'text-base'
+                    : 'text-sm'
+              } ${data.level === 'subchild' ? 'break-words overflow-hidden' : data.level === 'child' ? 'whitespace-nowrap' : 'overflow-hidden text-ellipsis'}`}
             >
-              {data.label}
+              {data.level === 'subchild' && data.description ? data.description : data.label}
             </span>
           </div>
           {/* Circular count badge for child nodes */}
@@ -254,7 +256,10 @@ const nodeTypes = {
 }
 
 // Generate nodes from provided offer data
-function generateNodesFromOfferData(offerData: GrandSlamOfferData): { nodes: Node[]; edges: Edge[] } {
+function generateNodesFromOfferData(offerData: GrandSlamOfferData): {
+  nodes: Node[]
+  edges: Edge[]
+} {
   const nodes: Node[] = []
   const edges: Edge[] = []
 
@@ -454,8 +459,7 @@ const generateAllSlamOfferData = () => {
   return { nodes, edges }
 }
 
-// Build hierarchy for text view
-// Convert SlamOfferData to GrandSlamOfferData for PDF export
+// Build hierarchy for PDF export
 const convertToGrandSlamFormat = (hierarchicalData: SlamOfferData[]): GrandSlamOfferData => {
   const components: GrandSlamComponent[] = []
 
@@ -503,7 +507,7 @@ const convertToGrandSlamFormat = (hierarchicalData: SlamOfferData[]): GrandSlamO
   })
 
   return {
-    id: 'slam-offer-export',
+    _id: `offer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     title: 'Grand Slam Offer',
     components,
   }
@@ -582,116 +586,11 @@ const buildHierarchy = (nodes: Node[], edges: Edge[]): SlamOfferData[] => {
   })
 }
 
-// Text View Component
-const TextView = ({
-  data,
-  onEdit,
-}: {
-  data: SlamOfferData[]
-  onEdit: (id: string, newLabel: string) => void
-}) => {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editText, setEditText] = useState('')
-
-  const renderNode = (node: SlamOfferData, level: number = 0) => {
-    const isEditing = editingId === node.id
-    const indent = level * 20
-
-    return (
-      <div key={node.id} style={{ marginLeft: indent }} className="py-2">
-        <div className="flex items-center group">
-          <div
-            className={`w-3 h-3 rounded-full mr-2 ${
-              node.level === 'grandparent'
-                ? 'bg-purple-500'
-                : node.level === 'child'
-                  ? 'bg-blue-500'
-                  : 'bg-gray-400'
-            }`}
-          />
-
-          {isEditing ? (
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={editText}
-                onChange={e => setEditText(e.target.value)}
-                className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-800 bg-white focus:outline-none focus:border-blue-500"
-                autoFocus
-                onKeyPress={e => {
-                  if (e.key === 'Enter') {
-                    onEdit(node.id, editText)
-                    setEditingId(null)
-                  }
-                }}
-              />
-              <button
-                onClick={() => {
-                  onEdit(node.id, editText)
-                  setEditingId(null)
-                }}
-                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-              >
-                <Save className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setEditingId(null)}
-                className="p-1 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center">
-              <span
-                className={`font-medium ${
-                  node.level === 'grandparent'
-                    ? 'text-lg text-purple-800'
-                    : node.level === 'child'
-                      ? 'text-base text-blue-700'
-                      : 'text-sm text-gray-600'
-                }`}
-              >
-                {node.label}
-              </span>
-              {node.level === 'subchild' && (
-                <button
-                  onClick={() => {
-                    setEditingId(node.id)
-                    setEditText(node.label)
-                  }}
-                  className="ml-2 p-1 opacity-0 group-hover:opacity-100 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                >
-                  <Edit2 className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {node.description && (
-          <div className="text-sm text-gray-500 ml-5 mt-1">{node.description}</div>
-        )}
-
-        {node.children && node.children.map(child => renderNode(child, level + 1))}
-      </div>
-    )
-  }
-
-  return (
-    <div className="p-6 bg-white max-h-full overflow-y-auto">
-      <h3 className="text-xl font-bold text-gray-900 mb-4">Slam Offer Structure</h3>
-      {data.map(node => renderNode(node))}
-    </div>
-  )
-}
-
 interface SlamOfferMindmapProps {
   data?: GrandSlamOfferData
 }
 
 export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
-  const [viewMode, setViewMode] = useState<'mindmap' | 'text'>('mindmap')
   const [expandedNode, setExpandedNode] = useState<string>('child-1') // Only one node expanded at a time
 
   const toggleNode = useCallback((nodeId: string) => {
@@ -702,8 +601,8 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
   }, [])
 
   // Generate all nodes once - use provided data or generate default
-  const { nodes: allNodes, edges: allEdges } = data 
-    ? generateNodesFromOfferData(data) 
+  const { nodes: allNodes, edges: allEdges } = data
+    ? generateNodesFromOfferData(data)
     : generateAllSlamOfferData()
 
   const [nodes, setNodes, onNodesChange] = useNodesState(allNodes)
@@ -778,33 +677,8 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
 
   return (
     <div className="space-y-6">
-      {/* View Toggle Control */}
-      <div className="flex justify-between items-center">
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setViewMode('mindmap')}
-            className={`flex items-center px-6 py-3 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'mindmap'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Eye className="w-5 h-5 mr-2" />
-            Mindmap View
-          </button>
-          <button
-            onClick={() => setViewMode('text')}
-            className={`flex items-center px-6 py-3 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'text'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <FileText className="w-5 h-5 mr-2" />
-            Text Structure View
-          </button>
-        </div>
-
+      {/* PDF Export Button */}
+      <div className="flex justify-end">
         <PDFExportButton
           data={convertToGrandSlamFormat(hierarchicalData)}
           defaultUserInfo={{
@@ -816,7 +690,7 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
       </div>
 
       {/* Expansion Controls */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-blue-900 mb-2">Quick Actions:</h4>
         <div className="flex flex-wrap gap-2">
           <button
@@ -842,46 +716,41 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
             {expandedNode ? nodes.find(n => n.id === expandedNode)?.data.label || 'None' : 'None'}
           </span>
         </div>
-      </div>
+      </div> */}
 
-      {/* Main Content Area */}
+      {/* Mindmap Content Area */}
       <div className="border-2 border-gray-300 rounded-lg bg-white">
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-4 border-b border-gray-300">
           <h5 className="font-bold text-lg flex items-center">
             <Star className="w-5 h-5 mr-2" />
-            {viewMode === 'mindmap'
-              ? 'No-Flicker Grand Slam Offer Mindmap'
-              : 'Structured Text View'}
+            Grand Slam Offer Mindmap
             <span className="ml-4 text-sm opacity-90">
-              {viewMode === 'mindmap'
-                ? `(${expandedNode ? '1 section expanded, 5 items visible' : 'All collapsed'})`
-                : '(Hierarchical Structure)'}
+              {expandedNode ? '1 section expanded, 5 items visible' : 'All collapsed'}
             </span>
           </h5>
         </div>
         <div style={{ height: '900px' }} className="relative">
-          {viewMode === 'mindmap' ? (
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesState}
-              nodeTypes={nodeTypes}
-              connectionLineType={ConnectionLineType.SmoothStep}
-              fitView
-              attributionPosition="bottom-left"
-              defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
-              minZoom={0.4}
-              maxZoom={1.2}
-              zoomOnScroll={true}
-              preventScrolling={false}
-            >
-              <Controls />
-              <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
-            </ReactFlow>
-          ) : (
-            <TextView data={hierarchicalData} onEdit={editNode} />
-          )}
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesState}
+            nodeTypes={nodeTypes}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            fitView
+            attributionPosition="bottom-left"
+            defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
+            minZoom={0.4}
+            maxZoom={1.2}
+            zoomOnScroll={true}
+            preventScrolling={false}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={true}
+          >
+            <Controls />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#e2e8f0" />
+          </ReactFlow>
         </div>
       </div>
 

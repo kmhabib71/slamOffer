@@ -1,12 +1,21 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { AuthUser, authService } from '@/lib/auth'
+import { useSession, signOut as nextAuthSignOut } from 'next-auth/react'
 import { identifyUser } from '@/lib/posthog'
-import { supabase } from '@/lib/supabase'
+import { UserProfile } from '@/lib/models/user'
+
+interface User {
+  _id: string
+  email: string
+  name?: string
+  image?: string
+  role?: 'user' | 'admin'
+  profile?: UserProfile
+}
 
 interface AuthContextType {
-  user: AuthUser | null
+  user: User | null
   loading: boolean
   isInitialized: boolean
   signOut: () => Promise<void>
@@ -28,20 +37,46 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null)
+  const { data: session, status } = useSession()
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
 
   const refreshUser = async () => {
-    if (!isInitialized) return // Don't refresh if not initialized yet
+    if (!session?.user?.email) return
 
     setLoading(true)
     try {
-      const currentUser = await authService.getCurrentUser()
-      setUser(currentUser)
+      const response = await fetch('/api/user/profile', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (currentUser) {
-        identifyUser(currentUser.id, {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      const profile = data.profile
+
+      if (session.user) {
+        const sessionUser = session.user as any
+        const currentUser: User = {
+          _id: sessionUser.id || sessionUser.email, // Use email as fallback ID
+          email: sessionUser.email!,
+          name: sessionUser.name,
+          image: sessionUser.image,
+          role: sessionUser.role as 'user' | 'admin' | undefined,
+          profile: profile || undefined,
+        }
+
+        setUser(currentUser)
+
+        identifyUser(currentUser._id.toString(), {
           email: currentUser.email,
           subscription_tier: currentUser.profile?.subscription_tier,
           credits_remaining: currentUser.profile?.credits_remaining,
@@ -49,7 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error('Error refreshing user:', error)
-      // Don't clear user on refresh error - maintain last known state
+      // Don't set user to null on error, keep existing user if any
     } finally {
       setLoading(false)
     }
@@ -57,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = async () => {
     try {
-      await authService.signOut()
+      await nextAuthSignOut({ callbackUrl: '/' })
       setUser(null)
     } catch (error) {
       console.error('Error signing out:', error)
@@ -65,82 +100,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    let mounted = true
-    let visibilityHandler: ((e: Event) => void) | null = null
-
-    // Initial session check
-    const initializeAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        if (mounted) {
-          if (session) {
-            const currentUser = await authService.getCurrentUser()
-            setUser(currentUser)
-            if (currentUser) {
-              identifyUser(currentUser.id, {
-                email: currentUser.email,
-                subscription_tier: currentUser.profile?.subscription_tier,
-                credits_remaining: currentUser.profile?.credits_remaining,
-              })
-            }
-          } else {
-            setUser(null)
-          }
-          setLoading(false)
-          setIsInitialized(true)
-        }
-      } catch (error) {
-        console.error('Error during auth initialization:', error)
-        if (mounted) {
-          setUser(null)
-          setLoading(false)
-          setIsInitialized(true)
-        }
-      }
+    if (status === 'loading') {
+      return
     }
 
-    // Set up visibility change handler
-    if (typeof document !== 'undefined') {
-      visibilityHandler = async () => {
-        if (document.visibilityState === 'visible' && isInitialized && !loading) {
-          // Only refresh session when becoming visible and already initialized
-          const {
-            data: { session },
-          } = await supabase.auth.getSession()
-          if (session && user?.id !== session.user.id) {
-            await refreshUser() // Only refresh if session user ID changed
-          } else if (!session && user) {
-            setUser(null) // Clear user if session is gone
-          }
-        }
+    if (!session) {
+      setUser(null)
+      setLoading(false)
+      setIsInitialized(true)
+      return
+    }
+
+    const initializeAuth = async () => {
+      try {
+        await refreshUser()
+      } catch (error) {
+        console.error('Error during auth initialization:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+        setIsInitialized(true)
       }
-      document.addEventListener('visibilitychange', visibilityHandler)
     }
 
     initializeAuth()
-
-    // Set up auth state listener
-    const subscription = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await refreshUser()
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setLoading(false)
-      }
-    })
-
-    return () => {
-      mounted = false
-      if (visibilityHandler) {
-        document.removeEventListener('visibilitychange', visibilityHandler)
-      }
-      subscription.data.subscription.unsubscribe()
-    }
-  }, [])
+  }, [session, status])
 
   const value = {
     user,

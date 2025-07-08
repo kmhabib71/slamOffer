@@ -20,10 +20,14 @@ import {
   Clock,
   Shield,
   TrendingUp,
+  LogIn,
+  CreditCard,
+  HelpCircle,
 } from 'lucide-react'
 import { analytics } from '@/lib/posthog'
 import { useAuth } from './providers/auth-provider'
 import { AuthModal } from '@/components/auth/auth-modal'
+import Navbar, { NavItem } from '@/components/ui/navbar'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 // Jupyter Notebook Demo Component
@@ -506,6 +510,7 @@ export default function Home() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
   const router = useRouter()
+
   useEffect(() => {
     analytics.landingPageView()
   }, [])
@@ -516,8 +521,6 @@ export default function Home() {
       setAuthMode('signup')
       setAuthModalOpen(true)
     } else {
-      // TODO: Navigate to generation page
-
       router.push('/dashboard')
       console.log('Navigate to generation page')
     }
@@ -527,6 +530,59 @@ export default function Home() {
     setAuthMode('signin')
     setAuthModalOpen(true)
   }
+
+  // Define navigation items for landing page
+  const navItems: NavItem[] = [
+    {
+      label: 'Product',
+      href: '#features',
+      type: 'link',
+      icon: Target,
+    },
+    {
+      label: 'How It Works',
+      href: '#how-it-works',
+      type: 'link',
+      icon: Brain,
+    },
+    {
+      label: 'Examples',
+      href: '#examples',
+      type: 'link',
+      icon: Star,
+    },
+    {
+      label: 'Pricing',
+      href: '#pricing',
+      type: 'link',
+      icon: CreditCard,
+    },
+    ...(user
+      ? [
+          {
+            label: 'Dashboard',
+            href: '/dashboard',
+            type: 'button' as const,
+            variant: 'default' as const,
+            icon: BarChart3,
+          },
+        ]
+      : [
+          {
+            label: 'Login',
+            onClick: handleSignInClick,
+            type: 'button' as const,
+            icon: LogIn,
+          },
+        ]),
+    {
+      label: 'Get Started',
+      onClick: () => handleCTAClick('nav-cta'),
+      type: 'button' as const,
+      variant: 'primary' as const,
+      icon: Rocket,
+    },
+  ]
 
   return (
     <div className="min-h-screen relative bg-[#F9FAFB] dotted-bg">
@@ -547,74 +603,19 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Header */}
-      <header className="relative z-50 px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
-        <nav className="mx-auto max-w-7xl flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-slate-800">GrandSlamGenerator.ai</span>
-          </div>
-          <div className="hidden md:flex items-center space-x-8">
-            <a
-              href="#features"
-              className="text-slate-600 hover:text-violet-600 transition-colors font-semibold"
-            >
-              Features
-            </a>
-            <a
-              href="#examples"
-              className="text-slate-600 hover:text-violet-600 transition-colors font-semibold"
-            >
-              Examples
-            </a>
-            <Link
-              href="/react-flow-tutorial"
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all font-semibold flex items-center space-x-2"
-            >
-              <Brain className="h-4 w-4" />
-              <span>React Flow Tutorial</span>
-            </Link>
-            <Link
-              href="/slam-offer-mindmap"
-              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all font-semibold flex items-center space-x-2"
-            >
-              <Star className="h-4 w-4" />
-              <span>Slam Offer Mindmap</span>
-            </Link>
-
-            {loading ? (
-              <div className="w-8 h-8 border-2 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
-            ) : user ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-slate-700">
-                  <User className="h-4 w-4" />
-                  <span className="text-sm font-semibold">{user.email}</span>
-                  {user.profile && (
-                    <span className="text-xs bg-gradient-to-r from-violet-100 to-sky-100 text-violet-700 px-3 py-1 rounded-full border border-violet-200 font-semibold">
-                      {user.profile.subscription_tier}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={signOut}
-                  className="text-slate-500 hover:text-slate-700 transition-colors text-sm font-semibold"
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleSignInClick}
-                className="bg-gradient-to-r from-violet-500 to-sky-500 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:from-violet-600 hover:to-sky-600 transition-all duration-300 shadow-lg"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
-        </nav>
-      </header>
+      {/* Navigation */}
+      <Navbar
+        logo={{ text: 'GrandSlamGenerator.ai', icon: Sparkles }}
+        items={navItems}
+        user={undefined} // Don't show user info on home page
+        onUserAction={action => {
+          if (action === 'logout') {
+            signOut()
+          }
+        }}
+        fixed={true}
+        transparent={true}
+      />
 
       {/* Hero Section */}
       <section className="relative px-6 py-12 lg:py-16 z-10 min-h-[85vh] flex items-center">
@@ -776,7 +777,10 @@ export default function Home() {
       </section>
 
       {/* Jupyter Notebook Demo Section */}
-      <section className="px-6 py-16 relative z-10 bg-gradient-to-b from-white to-slate-50">
+      <section
+        id="how-it-works"
+        className="px-6 py-16 relative z-10 bg-gradient-to-b from-white to-slate-50"
+      >
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <motion.div
@@ -877,6 +881,215 @@ export default function Home() {
                 <p className="text-slate-600 leading-relaxed font-semibold">
                   {feature.description}
                 </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Examples Section */}
+      <section
+        id="examples"
+        className="px-6 py-16 relative z-10 bg-gradient-to-b from-slate-50 to-white"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl lg:text-5xl font-black text-slate-800 mb-4">
+                Real{' '}
+                <span className="bg-gradient-to-r from-violet-600 to-sky-500 bg-clip-text text-transparent">
+                  Success Stories
+                </span>
+              </h2>
+              <p className="text-xl text-slate-600 max-w-3xl mx-auto font-semibold">
+                See how entrepreneurs across industries have transformed their businesses
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Fitness Coaching',
+                before: '$2,000/month',
+                after: '$25,000/month',
+                transformation: '12x Revenue Growth',
+                description:
+                  'Transformed basic personal training into a comprehensive transformation system',
+                gradient: 'from-violet-500 to-sky-500',
+              },
+              {
+                title: 'Digital Marketing',
+                before: '$5,000/month',
+                after: '$50,000/month',
+                transformation: '10x Revenue Growth',
+                description: 'Created irresistible agency offer with guaranteed results framework',
+                gradient: 'from-sky-500 to-yellow-500',
+              },
+              {
+                title: 'Business Consulting',
+                before: '$3,000/month',
+                after: '$35,000/month',
+                transformation: '11x Revenue Growth',
+                description:
+                  'Packaged expertise into premium consulting program with massive value stack',
+                gradient: 'from-yellow-500 to-violet-500',
+              },
+            ].map((example, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="bg-white/60 backdrop-blur-md p-8 rounded-2xl border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-300 group"
+              >
+                <div
+                  className={`w-16 h-16 rounded-xl bg-gradient-to-br ${example.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}
+                >
+                  <Rocket className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-black text-slate-800 mb-3">{example.title}</h3>
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600 font-semibold">Before:</span>
+                    <span className="text-sm text-red-600 font-bold">{example.before}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600 font-semibold">After:</span>
+                    <span className="text-sm text-green-600 font-bold">{example.after}</span>
+                  </div>
+                  <div className="text-center py-2">
+                    <span className="bg-gradient-to-r from-violet-100 to-sky-100 text-violet-700 px-3 py-1 rounded-full text-sm font-black border border-violet-200">
+                      {example.transformation}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                  {example.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section
+        id="pricing"
+        className="px-6 py-16 relative z-10 bg-gradient-to-b from-white to-slate-50"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl lg:text-5xl font-black text-slate-800 mb-4">
+                Simple{' '}
+                <span className="bg-gradient-to-r from-violet-600 to-sky-500 bg-clip-text text-transparent">
+                  Pricing
+                </span>
+              </h2>
+              <p className="text-xl text-slate-600 max-w-3xl mx-auto font-semibold">
+                Choose the perfect plan to transform your business offers
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {[
+              {
+                name: 'Free',
+                price: '$0',
+                period: 'forever',
+                description: 'Perfect for testing the waters',
+                features: ['3 offer generations', 'Basic templates', 'Email support'],
+                cta: 'Get Started Free',
+                popular: false,
+                gradient: 'from-slate-500 to-slate-600',
+              },
+              {
+                name: 'Pro',
+                price: '$29',
+                period: 'month',
+                description: 'For serious entrepreneurs',
+                features: [
+                  'Unlimited generations',
+                  'Premium templates',
+                  'Priority support',
+                  'Advanced analytics',
+                  'Custom branding',
+                ],
+                cta: 'Start Pro Trial',
+                popular: true,
+                gradient: 'from-violet-500 to-sky-500',
+              },
+              {
+                name: 'Enterprise',
+                price: '$99',
+                period: 'month',
+                description: 'For teams and agencies',
+                features: [
+                  'Everything in Pro',
+                  'Team collaboration',
+                  'White-label options',
+                  'API access',
+                  'Dedicated support',
+                ],
+                cta: 'Contact Sales',
+                popular: false,
+                gradient: 'from-sky-500 to-yellow-500',
+              },
+            ].map((plan, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className={`relative bg-white/60 backdrop-blur-md p-8 rounded-2xl border ${plan.popular ? 'border-violet-300 shadow-2xl' : 'border-slate-200 shadow-xl'} hover:shadow-2xl transition-all duration-300 group`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-gradient-to-r from-violet-500 to-sky-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+                      Most Popular
+                    </div>
+                  </div>
+                )}
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-black text-slate-800 mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline justify-center mb-2">
+                    <span className="text-4xl font-black text-slate-800">{plan.price}</span>
+                    <span className="text-slate-600 font-semibold ml-1">/{plan.period}</span>
+                  </div>
+                  <p className="text-slate-600 font-medium">{plan.description}</p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center space-x-3">
+                      <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <span className="text-slate-700 font-medium">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleCTAClick(`pricing-${plan.name.toLowerCase()}`)}
+                  className={`w-full py-3 px-6 rounded-lg font-bold text-lg transition-all duration-300 ${
+                    plan.popular
+                      ? 'bg-gradient-to-r from-violet-500 to-sky-500 hover:from-violet-600 hover:to-sky-600 text-white shadow-lg hover:shadow-xl'
+                      : 'bg-white border-2 border-slate-200 text-slate-700 hover:border-violet-300 hover:bg-violet-50'
+                  }`}
+                >
+                  {plan.cta}
+                </button>
               </motion.div>
             ))}
           </div>

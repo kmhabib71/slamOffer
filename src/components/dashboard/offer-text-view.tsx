@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Crown,
@@ -25,10 +25,19 @@ import {
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { CompleteGrandSlamOffer } from '@/types'
 import { useAuth } from '@/app/providers/auth-provider'
+import { PurchaseModal } from './purchase-modal'
+import { GenerationAnimation } from './generation-animation'
+
+// Client-safe version for components
+type ClientSafeOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_id'> & {
+  _id: string
+  user_id: string
+}
 
 interface OfferTextViewProps {
-  offer: CompleteGrandSlamOffer
+  offer: ClientSafeOffer
   onPurchaseClick: (componentName?: string) => void
+  isPurchased?: boolean
 }
 
 const getComponentIcon = (componentId: number) => {
@@ -83,9 +92,95 @@ const getRealisticItemCount = (componentId: number) => {
   return itemCounts[componentId] || 20
 }
 
-export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
+export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferTextViewProps) {
   const { user } = useAuth()
-  const isPro = user?.subscription_tier === 'pro'
+  // isPurchased indicates if the offer owner has purchased the full version
+  // This determines what content is available to view (for both owner and public viewers)
+  const isPro = user?.profile?.subscription_tier === 'pro' || isPurchased
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [purchasedOffer, setPurchasedOffer] = useState<ClientSafeOffer | null>(null)
+  const [expandedComponents, setExpandedComponents] = useState<Set<number>>(new Set())
+
+  // Check if this is a full offer (pro user or purchased offer)
+  // If the user has purchased the offer, always treat it as a full offer
+  // regardless of the actual item count (in case AI generation didn't work properly)
+  const isFullOffer = isPro
+
+  const handlePurchaseClick = (componentName: string) => {
+    setSelectedComponent(componentName)
+    setPurchaseModalOpen(true)
+  }
+
+  const toggleComponentExpansion = (componentId: number) => {
+    setExpandedComponents(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(componentId)) {
+        newSet.delete(componentId)
+      } else {
+        newSet.add(componentId)
+      }
+      return newSet
+    })
+  }
+
+  const handlePurchaseComplete = async () => {
+    setIsGenerating(true)
+    setPurchaseModalOpen(false)
+
+    try {
+      const requestBody = {
+        offerId: offer._id,
+        businessContext: offer.businessContext,
+        generateComplete: true,
+        userTier: 'pro',
+      }
+
+      console.log('Sending purchase request:', requestBody)
+      console.log('Offer object:', {
+        _id: offer._id,
+        businessContext: offer.businessContext,
+        hasBusinessContext: !!offer.businessContext,
+        businessDescription: offer.businessContext?.businessDescription,
+      })
+
+      const response = await fetch('/api/purchase-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        console.error('Purchase API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          details: data.details,
+        })
+        throw new Error(data.error || 'Failed to process purchase')
+      }
+
+      const data = await response.json()
+      setPurchasedOffer(data.data)
+    } catch (error) {
+      console.error('Purchase error:', error)
+      // Handle error (show toast, etc.)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // Show generation animation while processing
+  if (isGenerating) {
+    return <GenerationAnimation businessContext={offer.businessContext} />
+  }
+
+  // Show purchased offer if available
+  const displayOffer = purchasedOffer || offer
 
   return (
     <Tooltip.Provider delayDuration={200}>
@@ -105,7 +200,7 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
                 Your Business Description
               </h3>
               <p className="text-slate-700 leading-relaxed text-base">
-                {offer.businessContext.businessDescription}
+                {displayOffer.businessContext.businessDescription}
               </p>
             </div>
           </div>
@@ -113,7 +208,7 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
 
         {/* Components */}
         <div className="space-y-12">
-          {offer.components.map((component, index) => {
+          {displayOffer.components.map((component, index) => {
             const Icon = getComponentIcon(component.componentId)
             const gradient = getComponentGradient(component.componentId)
             const totalItemCount = getRealisticItemCount(component.componentId)
@@ -141,7 +236,8 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
                     </div>
                     <div className="text-right">
                       <div className="text-sm opacity-90">
-                        {isPro ? totalItemCount : 3} of {totalItemCount}
+                        {isFullOffer || isPurchased ? component.items.length : 3} of{' '}
+                        {totalItemCount}
                       </div>
                       <div className="text-xs opacity-75">strategies</div>
                     </div>
@@ -150,74 +246,33 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
 
                 {/* Component Items - Clean List Format */}
                 <div className="space-y-4 pl-0 sm:pl-4">
-                  {component.items.slice(0, 3).map((item, itemIndex) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 + itemIndex * 0.1 }}
-                      className="border-l-4 border-slate-200 pl-3 sm:pl-6 py-3 hover:border-violet-400 transition-colors group"
-                    >
-                      <div className="flex items-start space-x-3 sm:space-x-4">
-                        <div
-                          className={`w-6 h-6 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}
-                        >
-                          <span className="text-white text-xs font-bold">{itemIndex + 1}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col gap-2">
-                            {component.componentId !== 3 && (
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                                <h3 className="text-base font-semibold text-slate-800 group-hover:text-violet-700 transition-colors pr-1 break-words">
-                                  {item.title}
-                                </h3>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {item.value &&
-                                    item.value !== '$0 value' &&
-                                    item.value !== '$0' && (
-                                      <Tooltip.Root>
-                                        <Tooltip.Trigger asChild>
-                                          <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap cursor-help">
-                                            <TrendingUp className="h-3 w-3" />
-                                            <span>{item.value}</span>
-                                          </span>
-                                        </Tooltip.Trigger>
-                                        <Tooltip.Portal>
-                                          <Tooltip.Content
-                                            className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
-                                            sideOffset={5}
-                                          >
-                                            Estimated value this strategy can add to your business
-                                            <Tooltip.Arrow className="fill-slate-900" />
-                                          </Tooltip.Content>
-                                        </Tooltip.Portal>
-                                      </Tooltip.Root>
-                                    )}
-                                  {item.priority === 'high' && (
-                                    <Tooltip.Root>
-                                      <Tooltip.Trigger asChild>
-                                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap cursor-help">
-                                          <Star className="h-3 w-3" />
-                                          <span>High Impact</span>
-                                        </span>
-                                      </Tooltip.Trigger>
-                                      <Tooltip.Portal>
-                                        <Tooltip.Content
-                                          className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
-                                          sideOffset={5}
-                                        >
-                                          This strategy has a significant impact on business success
-                                          <Tooltip.Arrow className="fill-slate-900" />
-                                        </Tooltip.Content>
-                                      </Tooltip.Portal>
-                                    </Tooltip.Root>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            {component.componentId === 3 ? (
-                              <div className="space-y-3">
-                                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+                  {component.items
+                    .slice(
+                      0,
+                      isFullOffer || isPurchased
+                        ? expandedComponents.has(component.componentId)
+                          ? component.items.length
+                          : 12
+                        : 3
+                    )
+                    .map((item, itemIndex) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 + itemIndex * 0.1 }}
+                        className="border-l-4 border-slate-200 pl-3 sm:pl-6 py-3 hover:border-violet-400 transition-colors group"
+                      >
+                        <div className="flex items-start space-x-3 sm:space-x-4">
+                          <div
+                            className={`w-6 h-6 bg-gradient-to-br ${gradient} rounded-full flex items-center justify-center flex-shrink-0 mt-0.5`}
+                          >
+                            <span className="text-white text-xs font-bold">{itemIndex + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col gap-2">
+                              {component.componentId !== 3 && (
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                   <h3 className="text-base font-semibold text-slate-800 group-hover:text-violet-700 transition-colors pr-1 break-words">
                                     {item.title}
                                   </h3>
@@ -265,43 +320,117 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
                                     )}
                                   </div>
                                 </div>
-                                <div className="space-y-2">
-                                  <div className="flex flex-col">
-                                    <div className="flex items-start">
-                                      <span className="text-sm font-medium text-red-600 mr-2 flex-shrink-0">
-                                        Problem:
-                                      </span>
-                                      <span className="text-sm text-slate-700">
-                                        {item.linkedProblem}
-                                      </span>
+                              )}
+                              {component.componentId === 3 ? (
+                                <div className="space-y-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+                                    <h3 className="text-base font-semibold text-slate-800 group-hover:text-violet-700 transition-colors pr-1 break-words">
+                                      {item.title}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {item.value &&
+                                        item.value !== '$0 value' &&
+                                        item.value !== '$0' && (
+                                          <Tooltip.Root>
+                                            <Tooltip.Trigger asChild>
+                                              <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap cursor-help">
+                                                <TrendingUp className="h-3 w-3" />
+                                                <span>{item.value}</span>
+                                              </span>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Portal>
+                                              <Tooltip.Content
+                                                className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
+                                                sideOffset={5}
+                                              >
+                                                Estimated value this strategy can add to your
+                                                business
+                                                <Tooltip.Arrow className="fill-slate-900" />
+                                              </Tooltip.Content>
+                                            </Tooltip.Portal>
+                                          </Tooltip.Root>
+                                        )}
+                                      {item.priority === 'high' && (
+                                        <Tooltip.Root>
+                                          <Tooltip.Trigger asChild>
+                                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap cursor-help">
+                                              <Star className="h-3 w-3" />
+                                              <span>High Impact</span>
+                                            </span>
+                                          </Tooltip.Trigger>
+                                          <Tooltip.Portal>
+                                            <Tooltip.Content
+                                              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
+                                              sideOffset={5}
+                                            >
+                                              This strategy has a significant impact on business
+                                              success
+                                              <Tooltip.Arrow className="fill-slate-900" />
+                                            </Tooltip.Content>
+                                          </Tooltip.Portal>
+                                        </Tooltip.Root>
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex flex-col">
-                                    <div className="flex items-start">
-                                      <span className="text-sm font-medium text-emerald-600 mr-2 flex-shrink-0">
-                                        Solution:
-                                      </span>
-                                      <span className="text-sm text-slate-700">
-                                        {item.solutionDetails}
-                                      </span>
+                                  <div className="space-y-2">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-start">
+                                        <span className="text-sm font-medium text-red-600 mr-2 flex-shrink-0">
+                                          Problem:
+                                        </span>
+                                        <span className="text-sm text-slate-700">
+                                          {item.linkedProblem}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <div className="flex items-start">
+                                        <span className="text-sm font-medium text-emerald-600 mr-2 flex-shrink-0">
+                                          Solution:
+                                        </span>
+                                        <span className="text-sm text-slate-700">
+                                          {item.solutionDetails}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <p className="text-sm text-slate-600 leading-relaxed">
-                                {item.description}
-                              </p>
-                            )}
+                              ) : (
+                                <p className="text-sm text-slate-600 leading-relaxed">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))}
                 </div>
 
+                {/* See All Button for Full Offer Users */}
+                {(isFullOffer || isPurchased) && component.items.length > 12 && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => toggleComponentExpansion(component.componentId)}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-100 to-slate-50 hover:from-slate-200 hover:to-slate-100 border border-slate-200 rounded-xl font-medium text-slate-700 hover:text-slate-900 transition-all duration-300 shadow-sm hover:shadow-md"
+                    >
+                      {expandedComponents.has(component.componentId) ? (
+                        <>
+                          <span>Show Less</span>
+                          <ArrowRight className="h-4 w-4 rotate-90 transform transition-transform" />
+                        </>
+                      ) : (
+                        <>
+                          <span>See All {component.items.length} Strategies</span>
+                          <ArrowRight className="h-4 w-4 transform transition-transform" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
                 {/* Blurred Unlock Section for Free Users */}
-                {!isPro && (
+                {!isFullOffer && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -370,7 +499,7 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
                           </div>
 
                           <button
-                            onClick={() => onPurchaseClick(component.componentName)}
+                            onClick={() => handlePurchaseClick(component.componentName)}
                             className={`bg-gradient-to-r ${gradient} text-white px-5 py-1.5 rounded-full font-medium text-sm hover:shadow-lg transform hover:scale-102 transition-all duration-300 flex items-center gap-2`}
                           >
                             <Crown className="h-3.5 w-3.5" />
@@ -384,12 +513,13 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
                 )}
 
                 {/* Pro User Success Message */}
-                {isPro && (
+                {(isFullOffer || isPurchased) && (
                   <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg border border-emerald-200 p-4 ml-4">
                     <div className="flex items-center space-x-3">
                       <Crown className="h-5 w-5 text-emerald-600" />
                       <span className="text-emerald-800 font-semibold text-sm">
-                        Pro Access: All {component.items.length} strategies unlocked
+                        {isPurchased ? 'Purchased Access' : 'Pro Access'}: All{' '}
+                        {component.items.length} strategies unlocked
                       </span>
                     </div>
                   </div>
@@ -398,6 +528,14 @@ export function OfferTextView({ offer, onPurchaseClick }: OfferTextViewProps) {
             )
           })}
         </div>
+
+        {/* Add Purchase Modal */}
+        <PurchaseModal
+          isOpen={purchaseModalOpen}
+          onClose={() => setPurchaseModalOpen(false)}
+          offerTitle={offer.businessContext.businessDescription}
+          onPurchaseComplete={handlePurchaseComplete}
+        />
       </div>
     </Tooltip.Provider>
   )
