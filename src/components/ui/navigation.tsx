@@ -2,47 +2,34 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Brain } from 'lucide-react'
 
 export function Navigation() {
   const pathname = usePathname()
 
   const navItems = [
-    {
-      href: '/',
-      label: 'Home',
-      icon: Home,
-    },
-    {
-      href: '/mindmap/grand-slam-page',
-      label: 'Grand Slam Offer',
-      icon: Brain,
-    },
+    { name: 'Dashboard', href: '/dashboard', icon: '📊' },
+    { name: 'Unified Leads', href: '/unified-leads', icon: '🚀' },
+    { name: 'Offers', href: '/offers', icon: '💎' },
+    { name: 'Referrals', href: '/referrals', icon: '🔗' },
+    { name: 'Employees', href: '/employees', icon: '👥' },
+    { name: 'Affiliates', href: '/affiliates', icon: '🤝' },
+    { name: 'Help', href: '/dashboard/help', icon: '❓' },
   ]
 
   return (
-    <nav className="fixed top-4 left-4 z-50">
-      {/* <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-lg p-2 border border-white/20">
-        {navItems.map(item => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
-            </Link>
-          )
-        })}
-      </div> */}
+    <nav className="space-y-2 px-2">
+      {navItems.map(item => (
+        <Link
+          key={item.name}
+          href={item.href}
+          className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+            pathname === item.href ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <span className="text-xl">{item.icon}</span>
+          <span>{item.name}</span>
+        </Link>
+      ))}
     </nav>
   )
 }

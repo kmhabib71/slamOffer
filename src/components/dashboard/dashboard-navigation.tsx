@@ -3,7 +3,19 @@
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/providers/auth-provider'
 import { motion } from 'framer-motion'
-import { Sparkles, Zap, FolderOpen, User, HelpCircle, LogOut, Menu, X } from 'lucide-react'
+import {
+  Sparkles,
+  Zap,
+  FolderOpen,
+  User,
+  HelpCircle,
+  LogOut,
+  Menu,
+  X,
+  Target,
+  Users,
+  BarChart3,
+} from 'lucide-react'
 import { useState } from 'react'
 
 interface DashboardNavigationProps {
@@ -17,10 +29,28 @@ export function DashboardNavigation({ excludeItems = [] }: DashboardNavigationPr
 
   const allNavItems = [
     {
-      label: 'Generate Offer',
+      label: 'Create Offer',
       href: '/dashboard',
+      icon: Target,
+      description: 'Generate your Grand Slam Offer',
+    },
+    {
+      label: 'Lead Generation',
+      href: '/lead-generation',
+      icon: Users,
+      description: 'AI-powered lead generation dashboard',
+    },
+    {
+      label: 'Workflows',
+      href: '/lead-generation/workflows',
       icon: Zap,
-      description: 'Create new AI-powered offers',
+      description: 'Trigger n8n automation workflows',
+    },
+    {
+      label: 'Analytics',
+      href: '/lead-generation/analytics',
+      icon: BarChart3,
+      description: 'Track performance & ROI',
     },
     {
       label: 'My Offers',
