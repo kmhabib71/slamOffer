@@ -1,18 +1,6 @@
 import { ObjectId } from 'mongodb'
 import clientPromise from './mongodb'
-import { CompleteGrandSlamOffer } from '@/types'
-
-export interface SavedGrandSlamOffer {
-  id: string
-  user_id: string
-  title: string
-  business_description: string
-  offer_data: CompleteGrandSlamOffer
-  total_offer_value: string
-  user_tier: 'free' | 'pro'
-  created_at: string
-  updated_at: string
-}
+import { CompleteGrandSlamOffer, SavedGrandSlamOffer } from '@/types'
 
 // Generate a user-friendly title from business description
 function generateOfferTitle(businessDescription: string): string {
@@ -54,8 +42,17 @@ export async function saveGrandSlamOffer(
     const db = client.db()
     const title = generateOfferTitle(offer.businessContext.businessDescription)
 
-    // Check if user exists before saving
-    const userExists = await db.collection('users').findOne({ _id: new ObjectId(userId) })
+    // Check if user exists before saving - AI-FRIENDLY: Uses unified user_profiles collection
+    let userExists
+    try {
+      // Try to find by ObjectId first (if userId is a valid ObjectId)
+      userExists = await db.collection('user_profiles').findOne({
+        $or: [{ _id: new ObjectId(userId) }, { email: userId }],
+      })
+    } catch (error) {
+      // If userId is not a valid ObjectId (e.g., it's an email), just search by email
+      userExists = await db.collection('user_profiles').findOne({ email: userId })
+    }
     if (!userExists) {
       console.error('User validation error: User not found')
       return { success: false, error: 'User not found or unauthorized' }
@@ -172,8 +169,17 @@ export async function getOfferById(
       return { success: false, error: 'Offer not found' }
     }
 
-    // Get the owner's email
-    const owner = await db.collection('users').findOne({ _id: new ObjectId(offer.user_id) })
+    // Get the owner's email - AI-FRIENDLY: Uses unified user_profiles collection
+    let owner
+    try {
+      // Try to find by ObjectId first (if offer.user_id is a valid ObjectId)
+      owner = await db.collection('user_profiles').findOne({
+        $or: [{ _id: new ObjectId(offer.user_id) }, { email: offer.user_id }],
+      })
+    } catch (error) {
+      // If offer.user_id is not a valid ObjectId (e.g., it's an email), just search by email
+      owner = await db.collection('user_profiles').findOne({ email: offer.user_id })
+    }
 
     if (!owner) {
       return { success: false, error: 'Offer owner not found' }
@@ -276,8 +282,8 @@ export async function updateOfferVisibility(
     const client = await clientPromise
     const db = client.db()
 
-    // First, find the user by email to get their ID
-    const user = await db.collection('users').findOne({ email: userEmail })
+    // First, find the user by email to get their ID - AI-FRIENDLY: Uses unified user_profiles collection
+    const user = await db.collection('user_profiles').findOne({ email: userEmail })
     if (!user) {
       return { success: false, error: 'User not found' }
     }
@@ -315,8 +321,8 @@ export async function deleteOffer(
     const client = await clientPromise
     const db = client.db()
 
-    // First, find the user by email to get their ID
-    const user = await db.collection('users').findOne({ email: userEmail })
+    // First, find the user by email to get their ID - AI-FRIENDLY: Uses unified user_profiles collection
+    const user = await db.collection('user_profiles').findOne({ email: userEmail })
     if (!user) {
       return { success: false, error: 'User not found' }
     }
@@ -349,8 +355,8 @@ export async function updateOfferTitle(
     const client = await clientPromise
     const db = client.db()
 
-    // First, find the user by email to get their ID
-    const user = await db.collection('users').findOne({ email: userEmail })
+    // First, find the user by email to get their ID - AI-FRIENDLY: Uses unified user_profiles collection
+    const user = await db.collection('user_profiles').findOne({ email: userEmail })
     if (!user) {
       return { success: false, error: 'User not found' }
     }

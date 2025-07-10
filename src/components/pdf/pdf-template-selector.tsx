@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { EnhancedPDFGenerator, PDFTemplateData } from '@/utils/enhanced-pdf-generator'
-import { authService } from '@/lib/auth'
+import { EnhancedPDFGenerator } from '@/utils/enhanced-pdf-generator'
+import { PDFTemplateData } from '@/types'
+import { useAuth } from '@/app/providers/auth-provider'
 
 interface PDFTemplateSelectorProps {
   offerId?: string
@@ -16,6 +17,7 @@ export const PDFTemplateSelector: React.FC<PDFTemplateSelectorProps> = ({
   onTemplateSelected,
   showPreview = true,
 }) => {
+  const { user } = useAuth()
   const [templates, setTemplates] = useState<PDFTemplateData[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -31,11 +33,10 @@ export const PDFTemplateSelector: React.FC<PDFTemplateSelectorProps> = ({
       setTemplates(availableTemplates)
 
       // Get user's current selection
-      const user = await authService.getCurrentUser()
       if (user) {
-        const userTemplate = await EnhancedPDFGenerator.getUserTemplate(user.id, offerId)
+        const userTemplate = await EnhancedPDFGenerator.getUserTemplate(user._id, offerId)
         if (userTemplate) {
-          setSelectedTemplate(userTemplate.id)
+          setSelectedTemplate(userTemplate._id)
         }
       }
     } catch (error) {
@@ -50,13 +51,12 @@ export const PDFTemplateSelector: React.FC<PDFTemplateSelectorProps> = ({
     setIsSaving(true)
 
     try {
-      const user = await authService.getCurrentUser()
       if (!user) {
         throw new Error('User not authenticated')
       }
 
       const success = await EnhancedPDFGenerator.saveUserTemplateSelection(
-        user.id,
+        user._id,
         templateId,
         offerId
       )
@@ -129,15 +129,15 @@ export const PDFTemplateSelector: React.FC<PDFTemplateSelectorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map(template => (
           <div
-            key={template.id}
+            key={template._id}
             className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-              selectedTemplate === template.id
+              selectedTemplate === template._id
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
-            onClick={() => handleTemplateSelect(template.id)}
+            onClick={() => handleTemplateSelect(template._id)}
           >
-            {selectedTemplate === template.id && (
+            {selectedTemplate === template._id && (
               <div className="absolute top-2 right-2">
                 <div className="bg-blue-500 text-white rounded-full p-1">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -205,7 +205,7 @@ export const PDFTemplateSelector: React.FC<PDFTemplateSelectorProps> = ({
                 {template.category.charAt(0).toUpperCase() + template.category.slice(1)}
               </span>
 
-              {isSaving && selectedTemplate === template.id && (
+              {isSaving && selectedTemplate === template._id && (
                 <div className="flex items-center space-x-1 text-blue-600">
                   <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
                   <span className="text-xs">Saving...</span>

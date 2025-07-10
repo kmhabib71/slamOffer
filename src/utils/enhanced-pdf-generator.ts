@@ -1,4 +1,3 @@
-import { authService } from '@/lib/auth'
 import { GrandSlamOfferData, PDFTemplateData, ObjectId } from '@/types'
 
 export interface EnhancedPDFOptions {

@@ -391,3 +391,15 @@ export interface GenerationAnimationProps {
     businessDescription: string
   }
 }
+
+export interface SavedGrandSlamOffer {
+  id: string
+  user_id: string
+  title: string
+  business_description: string
+  offer_data: CompleteGrandSlamOffer
+  total_offer_value: string
+  user_tier: 'free' | 'pro'
+  created_at: string
+  updated_at: string
+}

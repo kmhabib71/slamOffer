@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/app/providers/auth-provider'
 import { useRouter } from 'next/navigation'
-import { SavedGrandSlamOffer } from '@/lib/offers'
+import { SavedGrandSlamOffer } from '@/types'
 import { OfferResults } from '@/components/dashboard/offer-results'
 import { AuthGuard } from '@/components/auth/auth-guard'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'

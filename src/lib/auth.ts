@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb'
 import clientPromise from './mongodb'
 import { User as NextAuthUser } from 'next-auth'
 
-type SubscriptionTier = 'free' | 'one_time' | 'pro'
+export type SubscriptionTier = 'free' | 'starter_spark' | 'growth_engine' | 'agency_arsenal'
 
 export interface UserProfile {
   _id: ObjectId
@@ -15,6 +15,18 @@ export interface UserProfile {
   last_generation_date?: Date
   daily_generation_count?: number
   purchased_offers_count?: number
+  // New pricing structure fields
+  package_details?: {
+    price_per_offer?: number
+    total_package_value?: number
+    purchase_date?: Date
+    regeneration_count?: number
+  }
+  // Daily usage tracking for free users
+  daily_usage?: {
+    date: string
+    count: number
+  }[]
   created_at: Date
   updated_at: Date
 }
@@ -94,78 +106,130 @@ export const authService = {
   },
 
   // Check if user can generate offers
-  async canUserGenerate(userId: string): Promise<boolean> {
+  async canUserGenerate(
+    userId: string
+  ): Promise<{ canGenerate: boolean; reason?: string; remainingCredits?: number }> {
     try {
       const profile = await this.getUserProfile(userId)
 
-      if (!profile) return false
-
-      // Pro users can always generate
-      if (profile.subscription_tier === 'pro' || profile.subscription_tier === 'one_time') {
-        return true
-      }
+      if (!profile) return { canGenerate: false, reason: 'User profile not found' }
 
       // Free users have limits: max 3 total offers, 1 per day
-      // Get real count from database
-      const client = await clientPromise
-      const db = client.db()
+      if (profile.subscription_tier === 'free') {
+        // Check total limit
+        if (profile.credits_remaining <= 0) {
+          return {
+            canGenerate: false,
+            reason: 'No more free offers available',
+            remainingCredits: 0,
+          }
+        }
 
-      const totalGenerated = await db.collection('grand_slam_offers').countDocuments({
-        user_id: userId,
-      })
+        // Check daily limit - get today's date
+        const today = new Date().toISOString().split('T')[0]
+        const todayUsage = profile.daily_usage?.find(usage => usage.date === today)
 
-      if (totalGenerated >= 3) {
-        return false
+        if (todayUsage && todayUsage.count >= 1) {
+          return {
+            canGenerate: false,
+            reason: 'Daily limit reached (1 per day)',
+            remainingCredits: profile.credits_remaining,
+          }
+        }
+
+        return { canGenerate: true, remainingCredits: profile.credits_remaining }
       }
 
-      // Check daily limit - count offers created today
-      const today = new Date()
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-
-      const dailyCount = await db.collection('grand_slam_offers').countDocuments({
-        user_id: userId,
-        created_at: {
-          $gte: startOfDay.toISOString(),
-          $lt: endOfDay.toISOString(),
-        },
-      })
-
-      if (dailyCount >= 1) {
-        return false
+      // Paid users can generate if they have credits
+      if (profile.credits_remaining > 0) {
+        return { canGenerate: true, remainingCredits: profile.credits_remaining }
       }
 
-      return true
+      return { canGenerate: false, reason: 'No credits remaining', remainingCredits: 0 }
     } catch (error) {
       console.error('Error checking generation limits:', error)
-      return false
+      return { canGenerate: false, reason: 'Error checking limits' }
     }
   },
 
   // Upgrade user subscription
-  async upgradeSubscription(userId: string, tier: SubscriptionTier) {
+  async upgradeSubscription(
+    userId: string,
+    tier: SubscriptionTier,
+    packageDetails?: {
+      price_per_offer?: number
+      total_package_value?: number
+      purchase_date?: Date
+      regeneration_count?: number
+    }
+  ) {
     const updates: Partial<UserProfile> = {
       subscription_tier: tier,
     }
 
-    // Add credits for one-time purchase
-    if (tier === 'one_time') {
-      updates.credits_remaining = 999999 // Effectively unlimited
+    // Add credits based on package type
+    if (tier === 'starter_spark') {
+      updates.credits_remaining = 1 // 1 offer for $9
+      updates.package_details = {
+        price_per_offer: 9,
+        total_package_value: 9,
+        purchase_date: new Date(),
+        regeneration_count: 2,
+        ...packageDetails,
+      }
+    } else if (tier === 'growth_engine') {
+      updates.credits_remaining = 10 // 10 offers for $47
+      updates.package_details = {
+        price_per_offer: 4.7,
+        total_package_value: 47,
+        purchase_date: new Date(),
+        regeneration_count: 0,
+        ...packageDetails,
+      }
+    } else if (tier === 'agency_arsenal') {
+      updates.credits_remaining = 30 // 30 offers for $99
+      updates.package_details = {
+        price_per_offer: 3.3,
+        total_package_value: 99,
+        purchase_date: new Date(),
+        regeneration_count: 0,
+        ...packageDetails,
+      }
     }
 
     return this.updateUserProfile(userId, updates)
   },
 
-  // Deduct user credits
+  // Deduct user credits and track daily usage
   async deductCredits(userId: string, amount: number = 1) {
     try {
       const profile = await this.getUserProfile(userId)
       if (!profile) throw new Error('User profile not found')
 
       const newCredits = Math.max(0, profile.credits_remaining - amount)
+      const today = new Date().toISOString().split('T')[0]
+
+      // Update daily usage for free users
+      const dailyUsage = profile.daily_usage || []
+      const todayUsageIndex = dailyUsage.findIndex(usage => usage.date === today)
+
+      if (todayUsageIndex >= 0) {
+        dailyUsage[todayUsageIndex].count += amount
+      } else {
+        dailyUsage.push({ date: today, count: amount })
+      }
+
+      // Keep only last 30 days of usage data
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+
+      const filteredUsage = dailyUsage.filter(usage => usage.date >= thirtyDaysAgoStr)
 
       return this.updateUserProfile(userId, {
         credits_remaining: newCredits,
+        daily_usage: filteredUsage,
+        last_generation_date: new Date(),
       })
     } catch (error) {
       console.error('Error deducting credits:', error)
@@ -173,12 +237,25 @@ export const authService = {
     }
   },
 
-  // Get user by ID
+  // Get user by ID - AI-FRIENDLY: Uses unified user_profiles collection
   async getUserById(userId: string) {
     try {
       const client = await clientPromise
       const db = client.db()
 
+      // First try unified collection (AI-friendly approach)
+      const unifiedUser = await db.collection('user_profiles').findOne({
+        $or: [
+          { _id: new ObjectId(userId) },
+          { email: userId }, // fallback if userId is actually email
+        ],
+      })
+
+      if (unifiedUser) {
+        return unifiedUser
+      }
+
+      // Fallback to old collection for backward compatibility
       const user = await db.collection('users').findOne({ _id: new ObjectId(userId) })
       return user
     } catch (error) {
@@ -187,12 +264,24 @@ export const authService = {
     }
   },
 
-  // Get user by email
+  // Get user by email - AI-FRIENDLY: Uses unified user_profiles collection
   async getUserByEmail(email: string) {
     try {
       const client = await clientPromise
       const db = client.db()
 
+      // First try unified collection (AI-friendly approach)
+      const unifiedUser = await db.collection('user_profiles').findOne({ email })
+
+      if (unifiedUser) {
+        // User is in unified format - return with profile included
+        return {
+          ...unifiedUser,
+          profile: unifiedUser, // The user data IS the profile data
+        }
+      }
+
+      // Fallback to old collections for backward compatibility
       const user = await db.collection('users').findOne({ email })
       if (!user) return null
 
@@ -246,18 +335,22 @@ export const authService = {
 // Subscription tier helpers
 export const subscriptionHelpers = {
   isFreeTier: (tier?: SubscriptionTier) => tier === 'free' || !tier,
-  isOneTimeTier: (tier?: SubscriptionTier) => tier === 'one_time',
-  isProTier: (tier?: SubscriptionTier) => tier === 'pro',
-  isPaidTier: (tier?: SubscriptionTier) => tier === 'one_time' || tier === 'pro',
+  isStarterSparkTier: (tier?: SubscriptionTier) => tier === 'starter_spark',
+  isGrowthEngineTier: (tier?: SubscriptionTier) => tier === 'growth_engine',
+  isAgencyArsenalTier: (tier?: SubscriptionTier) => tier === 'agency_arsenal',
+  isPaidTier: (tier?: SubscriptionTier) =>
+    tier === 'starter_spark' || tier === 'growth_engine' || tier === 'agency_arsenal',
 
   getTierDisplayName: (tier?: SubscriptionTier) => {
     switch (tier) {
       case 'free':
         return 'Free'
-      case 'one_time':
-        return 'One-Time Unlock'
-      case 'pro':
-        return 'Pro Monthly'
+      case 'starter_spark':
+        return 'Starter Spark'
+      case 'growth_engine':
+        return 'Growth Engine'
+      case 'agency_arsenal':
+        return 'Agency Arsenal'
       default:
         return 'Free'
     }
@@ -267,17 +360,32 @@ export const subscriptionHelpers = {
     switch (tier) {
       case 'free':
         return 3
-      case 'one_time':
-        return 999999
-      case 'pro':
-        return 999999
+      case 'starter_spark':
+        return 1
+      case 'growth_engine':
+        return 10
+      case 'agency_arsenal':
+        return 30
       default:
         return 3
     }
   },
 
+  getPricePerOffer: (tier?: SubscriptionTier) => {
+    switch (tier) {
+      case 'starter_spark':
+        return 9
+      case 'growth_engine':
+        return 4.7
+      case 'agency_arsenal':
+        return 3.3
+      default:
+        return 0
+    }
+  },
+
   canGenerateUnlimited: (tier?: SubscriptionTier) => {
-    return tier === 'one_time' || tier === 'pro'
+    return false // No unlimited tiers in new pricing
   },
 }
 

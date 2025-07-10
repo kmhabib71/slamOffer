@@ -517,12 +517,44 @@ export default function Home() {
 
   const handleCTAClick = (location: string) => {
     analytics.ctaClick(location)
-    if (!user) {
-      setAuthMode('signup')
-      setAuthModalOpen(true)
+
+    // Handle pricing plan selections
+    if (location.startsWith('pricing-')) {
+      const planName = location.replace('pricing-', '')
+      if (planName === 'free') {
+        // For free plan, just sign up and go to dashboard
+        if (!user) {
+          setAuthMode('signup')
+          setAuthModalOpen(true)
+        } else {
+          router.push('/dashboard')
+        }
+      } else {
+        // For paid plans, go to checkout
+        const planMapping: { [key: string]: string } = {
+          'starter spark': 'starter-spark',
+          'growth engine': 'growth-engine',
+          'agency arsenal': 'agency-arsenal',
+        }
+        const checkoutPlan = planMapping[planName] || 'growth-engine'
+
+        if (!user) {
+          // Store the intended plan and redirect to auth
+          sessionStorage.setItem('intended-plan', checkoutPlan)
+          setAuthMode('signup')
+          setAuthModalOpen(true)
+        } else {
+          router.push(`/checkout?plan=${checkoutPlan}`)
+        }
+      }
     } else {
-      router.push('/dashboard')
-      console.log('Navigate to generation page')
+      // Default behavior for other CTAs
+      if (!user) {
+        setAuthMode('signup')
+        setAuthModalOpen(true)
+      } else {
+        router.push('/dashboard')
+      }
     }
   }
 
@@ -1004,49 +1036,82 @@ export default function Home() {
             </motion.div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
             {[
               {
                 name: 'Free',
                 price: '$0',
                 period: 'forever',
                 description: 'Perfect for testing the waters',
-                features: ['3 offer generations', 'Basic templates', 'Email support'],
+                features: [
+                  '3 total offer generations',
+                  '1 offer per day limit',
+                  'Basic offer components',
+                  'Email support',
+                  'Standard PDF export',
+                ],
                 cta: 'Get Started Free',
                 popular: false,
                 gradient: 'from-slate-500 to-slate-600',
+                pricePerOffer: 'Free trial',
+                badge: null,
               },
               {
-                name: 'Pro',
-                price: '$29',
-                period: 'month',
-                description: 'For serious entrepreneurs',
+                name: 'Starter Spark',
+                price: '$9',
+                period: 'one-time',
+                description: 'Perfect for single offer creation',
                 features: [
-                  'Unlimited generations',
-                  'Premium templates',
-                  'Priority support',
-                  'Advanced analytics',
-                  'Custom branding',
+                  '1 complete offer generation',
+                  '2 offer regenerations included',
+                  'Full offer components',
+                  'Premium PDF export',
+                  'Email support',
+                  'Offer editing capabilities',
                 ],
-                cta: 'Start Pro Trial',
+                cta: 'Buy Now',
+                popular: false,
+                gradient: 'from-orange-500 to-red-500',
+                pricePerOffer: '$9 per offer',
+                badge: 'One-Time Purchase',
+              },
+              {
+                name: 'Growth Engine',
+                price: '$47',
+                period: 'package',
+                description: 'For growing businesses',
+                features: [
+                  '10 complete offer generations',
+                  'All premium features',
+                  'Advanced offer components',
+                  'Premium PDF export',
+                  'Priority support',
+                  'Offer editing & regeneration',
+                ],
+                cta: 'Buy Package',
                 popular: true,
                 gradient: 'from-violet-500 to-sky-500',
+                pricePerOffer: '$4.70 per offer',
+                badge: 'Best Value',
               },
               {
-                name: 'Enterprise',
+                name: 'Agency Arsenal',
                 price: '$99',
-                period: 'month',
-                description: 'For teams and agencies',
+                period: 'package',
+                description: 'For agencies and teams',
                 features: [
-                  'Everything in Pro',
-                  'Team collaboration',
-                  'White-label options',
-                  'API access',
-                  'Dedicated support',
+                  '30 complete offer generations',
+                  'All premium features',
+                  'Advanced offer components',
+                  'Premium PDF export',
+                  'Priority support',
+                  'Bulk offer management',
                 ],
-                cta: 'Contact Sales',
+                cta: 'Buy Package',
                 popular: false,
                 gradient: 'from-sky-500 to-yellow-500',
+                pricePerOffer: '$3.30 per offer',
+                badge: 'Best Deal',
               },
             ].map((plan, index) => (
               <motion.div
@@ -1064,11 +1129,27 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+                {plan.badge && !plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <div
+                      className={`bg-gradient-to-r ${plan.gradient} text-white px-4 py-1 rounded-full text-sm font-bold`}
+                    >
+                      {plan.badge}
+                    </div>
+                  </div>
+                )}
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-black text-slate-800 mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center mb-2">
                     <span className="text-4xl font-black text-slate-800">{plan.price}</span>
-                    <span className="text-slate-600 font-semibold ml-1">/{plan.period}</span>
+                    {plan.period !== 'forever' && (
+                      <span className="text-slate-600 font-semibold ml-1">/{plan.period}</span>
+                    )}
+                  </div>
+                  <div className="text-center mb-2">
+                    <span className="text-sm text-violet-600 font-bold bg-violet-50 px-3 py-1 rounded-full">
+                      {plan.pricePerOffer}
+                    </span>
                   </div>
                   <p className="text-slate-600 font-medium">{plan.description}</p>
                 </div>

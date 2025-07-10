@@ -20,20 +20,22 @@ import {
   X,
   Star,
   Target,
-  Heart,
   AlertTriangle,
   Lightbulb,
-  Truck,
+  Rocket,
   Layers,
-  Calculator,
   Package,
   Clock,
   Shield,
-  DollarSign,
-  Presentation,
+  Sparkles,
+  Zap,
+  Crown,
+  ArrowRight,
 } from 'lucide-react'
 import { PDFExportButton } from '@/components/pdf/pdf-export-button'
+import { PurchaseModal } from '@/components/dashboard/purchase-modal'
 import { GrandSlamOfferData, GrandSlamComponent, MindmapItem } from '@/types'
+import { useAuth } from '@/app/providers/auth-provider'
 // ObjectId is now defined as a string type in types/index.ts
 
 // Interface for mindmap data structure
@@ -64,17 +66,26 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
           ? `${grandparentStyle} ring-2 ring-blue-400 ring-opacity-50 shadow-xl`
           : grandparentStyle
       case 'child':
-        const childStyle = `${baseStyle} ${getChildNodeColor(data.label)} text-white font-semibold text-xl cursor-pointer hover:shadow-xl`
+        const childStyle = `${baseStyle} ${getChildNodeColor(data.componentId)} text-white font-semibold text-xl cursor-pointer hover:shadow-xl`
         return selected
           ? `${childStyle} ring-2 ring-blue-400 ring-opacity-50 shadow-xl`
           : childStyle
       case 'subchild':
-        const subchildStyle = `${baseStyle} bg-white border-slate-200 text-slate-700 font-medium text-sm hover:shadow-lg hover:border-slate-300 ${
-          data.isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`
-        return selected
-          ? `${subchildStyle} ring-2 ring-blue-400 ring-opacity-50 shadow-xl`
-          : subchildStyle
+        if (data.isUnlockNode) {
+          const unlockStyle = `${baseStyle} bg-gradient-to-br ${getChildNodeColor(data.parentComponentId)} text-white font-medium text-sm hover:shadow-xl cursor-pointer border-white/30 ${
+            data.isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`
+          return selected
+            ? `${unlockStyle} ring-2 ring-blue-400 ring-opacity-50 shadow-xl`
+            : unlockStyle
+        } else {
+          const subchildStyle = `${baseStyle} bg-white border-slate-200 text-slate-700 font-medium text-sm hover:shadow-lg hover:border-slate-300 ${
+            data.isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`
+          return selected
+            ? `${subchildStyle} ring-2 ring-blue-400 ring-opacity-50 shadow-xl`
+            : subchildStyle
+        }
       default:
         const defaultStyle = `${baseStyle} bg-white border-gray-300 text-gray-700`
         return selected
@@ -83,21 +94,21 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
     }
   }
 
-  const getChildNodeColor = (label: string) => {
-    const colorMap: Record<string, string> = {
-      'Dream Outcome': 'bg-gradient-to-br from-pink-500 to-rose-600 border-pink-400',
-      'Problems List': 'bg-gradient-to-br from-orange-500 to-red-600 border-orange-400',
-      'Solutions List': 'bg-gradient-to-br from-blue-500 to-blue-700 border-blue-400',
-      'Delivery Vehicles': 'bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-400',
-      'Trim & Stack': 'bg-gradient-to-br from-amber-500 to-yellow-600 border-amber-400',
-      'Value Equation': 'bg-gradient-to-br from-purple-500 to-violet-600 border-purple-400',
-      'Offer Stack': 'bg-gradient-to-br from-indigo-500 to-blue-700 border-indigo-400',
-      'Scarcity & Urgency': 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400',
-      'Risk Reversal': 'bg-gradient-to-br from-teal-500 to-emerald-600 border-teal-400',
-      'Naming & Pricing': 'bg-gradient-to-br from-cyan-500 to-blue-600 border-cyan-400',
-      'Final Presentation': 'bg-gradient-to-br from-violet-500 to-purple-700 border-violet-400',
+  const getChildNodeColor = (componentId: number) => {
+    const colorMap: Record<number, string> = {
+      1: 'bg-gradient-to-br from-pink-500 to-rose-600 border-pink-400',
+      2: 'bg-gradient-to-br from-orange-500 to-red-600 border-orange-400',
+      3: 'bg-gradient-to-br from-blue-500 to-blue-700 border-blue-400',
+      4: 'bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-400',
+      5: 'bg-gradient-to-br from-amber-500 to-yellow-600 border-amber-400',
+      6: 'bg-gradient-to-br from-purple-500 to-violet-600 border-purple-400',
+      7: 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400',
+      8: 'bg-gradient-to-br from-sky-500 to-blue-600 border-sky-400',
+      9: 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-400',
+      10: 'bg-gradient-to-br from-teal-500 to-emerald-600 border-teal-400',
+      11: 'bg-gradient-to-br from-cyan-500 to-blue-600 border-cyan-400',
     }
-    return colorMap[label] || 'bg-gradient-to-br from-slate-500 to-gray-600 border-slate-400'
+    return colorMap[componentId] || 'bg-gradient-to-br from-slate-500 to-gray-600 border-slate-400'
   }
 
   const getIcon = () => {
@@ -105,29 +116,39 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
       case 'grandparent':
         return <Star className="w-7 h-7 mr-3" />
       case 'child':
-        return getChildIcon(data.label)
+        console.log('data.componentId', data.componentId)
+        // Ensure componentId is a number, not undefined
+        const componentId = typeof data.componentId === 'number' ? data.componentId : 1
+        return getChildIcon(componentId)
       case 'subchild':
-        return <div className="w-2 h-2 bg-slate-400 rounded-full mr-2" />
+        if (data.isUnlockNode) {
+          return <Crown className="w-4 h-4 mr-2" />
+        } else {
+          return <div className="w-2 h-2 bg-slate-400 rounded-full mr-2" />
+        }
       default:
         return null
     }
   }
 
-  const getChildIcon = (label: string) => {
-    const iconMap: Record<string, React.JSX.Element> = {
-      'Dream Outcome': <Heart className="w-5 h-5 mr-2" />,
-      'Problems List': <AlertTriangle className="w-5 h-5 mr-2" />,
-      'Solutions List': <Lightbulb className="w-5 h-5 mr-2" />,
-      'Delivery Vehicles': <Truck className="w-5 h-5 mr-2" />,
-      'Trim & Stack': <Layers className="w-5 h-5 mr-2" />,
-      'Value Equation': <Calculator className="w-5 h-5 mr-2" />,
-      'Offer Stack': <Package className="w-5 h-5 mr-2" />,
-      'Scarcity & Urgency': <Clock className="w-5 h-5 mr-2" />,
-      'Risk Reversal': <Shield className="w-5 h-5 mr-2" />,
-      'Naming & Pricing': <DollarSign className="w-5 h-5 mr-2" />,
-      'Final Presentation': <Presentation className="w-5 h-5 mr-2" />,
+  const getChildIcon = (componentId: number) => {
+    console.log(`getChildIcon called with componentId: ${componentId}`)
+    const iconMap: Record<number, React.JSX.Element> = {
+      1: <Target className="w-5 h-5 mr-2" />,
+      2: <AlertTriangle className="w-5 h-5 mr-2" />,
+      3: <Lightbulb className="w-5 h-5 mr-2" />,
+      4: <Rocket className="w-5 h-5 mr-2" />,
+      5: <Layers className="w-5 h-5 mr-2" />,
+      6: <Package className="w-5 h-5 mr-2" />,
+      7: <Clock className="w-5 h-5 mr-2" />,
+      8: <Zap className="w-5 h-5 mr-2" />,
+      9: <Star className="w-5 h-5 mr-2" />,
+      10: <Shield className="w-5 h-5 mr-2" />,
+      11: <Sparkles className="w-5 h-5 mr-2" />,
     }
-    return iconMap[label] || <Target className="w-5 h-5 mr-2" />
+    const selectedIcon = iconMap[componentId] || <Target className="w-5 h-5 mr-2" />
+    console.log(`Returning icon for componentId ${componentId}:`, selectedIcon)
+    return selectedIcon
   }
 
   const handleSave = () => {
@@ -140,18 +161,34 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
   const handleNodeClick = () => {
     if (data.level === 'child' && data.onToggle) {
       data.onToggle(id)
+    } else if (data.level === 'subchild' && data.isUnlockNode && data.onUnlockClick) {
+      data.onUnlockClick()
     }
   }
 
-  // Fixed heights for all node types with increased width for child nodes
+  // Dynamic width calculation for subchild nodes based on content
   const getFixedDimensions = () => {
     switch (data.level) {
       case 'grandparent':
         return 'w-[260px] h-[100px] p-6'
       case 'child':
-        return 'w-[280px] h-[70px] p-4' // Increased width further to show full text like "Scarcity & Urgency"
+        return 'w-[320px] h-[70px] p-4' // Increased width to accommodate item count
       case 'subchild':
-        return 'w-[320px] h-[80px] p-3'
+        if (data.isUnlockNode) {
+          return 'w-[380px] h-[70px] p-3 m-4'
+        } else {
+          // Calculate width based on content length - use predefined Tailwind classes
+          const contentLength = data.description?.length || data.label?.length || 0
+          if (contentLength > 80) {
+            return 'w-[400px] h-[80px] p-3'
+          } else if (contentLength > 60) {
+            return 'w-[360px] h-[80px] p-3'
+          } else if (contentLength > 40) {
+            return 'w-[320px] h-[80px] p-3'
+          } else {
+            return 'w-[280px] h-[80px] p-3'
+          }
+        }
       default:
         return 'w-[160px] h-[60px] p-4'
     }
@@ -224,6 +261,10 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
               {data.subChildrenCount}
             </div>
           )}
+          {/* Unlock button for unlock nodes */}
+          {data.level === 'subchild' && data.isUnlockNode && (
+            <ArrowRight className="w-4 h-4 ml-2 flex-shrink-0" />
+          )}
         </div>
 
         {data.description && data.level === 'grandparent' && (
@@ -232,19 +273,22 @@ const SlamOfferNode = ({ id, data, selected }: { id: string; data: any; selected
       </div>
 
       {/* Only show edit button for sub-children */}
-      {(selected || data.showControls) && data.level === 'subchild' && data.isVisible && (
-        <div className="absolute -top-2 -right-2 flex space-x-1">
-          <button
-            onClick={e => {
-              e.stopPropagation()
-              setIsEditing(true)
-            }}
-            className="p-1.5 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-          >
-            <Edit2 className="w-3 h-3" />
-          </button>
-        </div>
-      )}
+      {(selected || data.showControls) &&
+        data.level === 'subchild' &&
+        data.isVisible &&
+        !data.isUnlockNode && (
+          <div className="absolute -top-2 -right-2 flex space-x-1">
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                setIsEditing(true)
+              }}
+              className="p-1.5 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+          </div>
+        )}
 
       <Handle type="source" position={Position.Right} className="w-3 h-3 border-2 border-white" />
     </div>
@@ -269,7 +313,7 @@ function generateNodesFromOfferData(offerData: GrandSlamOfferData): {
     type: 'slamOfferNode',
     position: { x: 100, y: 400 },
     data: {
-      label: offerData.title,
+      label: 'Grand Slam Offer',
       level: 'grandparent',
       description: 'Your complete Grand Slam Offer structure',
     },
@@ -292,6 +336,7 @@ function generateNodesFromOfferData(offerData: GrandSlamOfferData): {
         description: component.description,
         isExpanded: false,
         subChildrenCount: component.items.length,
+        componentId: typeof component.id === 'string' ? parseInt(component.id) : component.id,
       },
     })
 
@@ -354,15 +399,14 @@ const generateAllSlamOfferData = () => {
   const nodes: Node[] = []
   const edges: Edge[] = []
 
-  // Grand parent node - "Slam Offer"
+  // Grand parent node - "Grand Slam Offer" (fixed text)
   nodes.push({
     id: 'slam-offer',
     type: 'slamOfferNode',
     position: { x: 100, y: 400 },
     data: {
-      label: 'Slam Offer',
+      label: 'Grand Slam Offer',
       level: 'grandparent',
-      description: 'The Ultimate Irresistible Offer',
     },
   })
 
@@ -386,7 +430,7 @@ const generateAllSlamOfferData = () => {
   const childStartY = 50 // Starting Y position for first child
 
   // Sub-children configuration with increased spacing
-  const subChildrenPerParent = 5
+  const subChildrenPerParent = 3 // Show 3 real items + 1 unlock node for free users
   const subChildSpacing = 70 // Increased from 60 to 70
   const subChildGroupHeight = (subChildrenPerParent - 1) * subChildSpacing
 
@@ -394,8 +438,10 @@ const generateAllSlamOfferData = () => {
   childNames.forEach((name, index) => {
     const childId = `child-${index + 1}`
     const childY = childStartY + index * childSpacing
+    const componentId = index + 1
 
     // Add child node with increased horizontal spacing
+    console.log(`Creating child node ${childId} with componentId: ${componentId}`)
     nodes.push({
       id: childId,
       type: 'slamOfferNode',
@@ -405,6 +451,7 @@ const generateAllSlamOfferData = () => {
         level: 'child',
         subChildrenCount: 5,
         isExpanded: false, // Will be updated by state
+        componentId: componentId,
       },
     })
 
@@ -421,9 +468,10 @@ const generateAllSlamOfferData = () => {
       animated: false,
     })
 
-    // Generate ALL sub-children with increased horizontal spacing
+    // Generate 3 regular sub-children + 1 unlock node
     const subChildrenStartY = childY - subChildGroupHeight / 2
 
+    // First 3 regular subchildren
     for (let subIndex = 0; subIndex < subChildrenPerParent; subIndex++) {
       const subchildId = `subchild-${index + 1}-${subIndex + 1}`
       const subchildY = subChildrenStartY + subIndex * subChildSpacing
@@ -437,6 +485,7 @@ const generateAllSlamOfferData = () => {
           level: 'subchild',
           parentId: childId,
           isVisible: false, // Will be controlled by state
+          description: `Key strategy ${subIndex + 1} for ${name.toLowerCase()}`,
         },
       })
 
@@ -454,6 +503,39 @@ const generateAllSlamOfferData = () => {
         animated: false,
       })
     }
+
+    // Add unlock node as 4th subchild
+    const unlockNodeId = `unlock-${index + 1}`
+    const unlockNodeY = subChildrenStartY + subChildrenPerParent * subChildSpacing
+
+    nodes.push({
+      id: unlockNodeId,
+      type: 'slamOfferNode',
+      position: { x: 920, y: unlockNodeY },
+      data: {
+        label: 'Unlock All',
+        level: 'subchild',
+        parentId: childId,
+        isVisible: false,
+        isUnlockNode: true,
+        parentComponentId: componentId,
+        description: `Unlock all ${name.toLowerCase()} strategies`,
+      },
+    })
+
+    // Connect unlock node to parent
+    edges.push({
+      id: `edge-${childId}-${unlockNodeId}`,
+      source: childId,
+      target: unlockNodeId,
+      type: 'smoothstep',
+      style: {
+        stroke: '#8b5cf6',
+        strokeWidth: 3,
+        strokeOpacity: 0,
+      },
+      animated: false,
+    })
   })
 
   return { nodes, edges }
@@ -591,7 +673,14 @@ interface SlamOfferMindmapProps {
 }
 
 export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
+  const { user } = useAuth()
   const [expandedNode, setExpandedNode] = useState<string>('child-1') // Only one node expanded at a time
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
+
+  // Check if user is pro or has purchased access
+  const isPro =
+    user?.profile?.subscription_tier !== 'free' && user?.profile?.subscription_tier !== undefined
 
   const toggleNode = useCallback((nodeId: string) => {
     setExpandedNode(prev => {
@@ -599,6 +688,17 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
       return prev === nodeId ? '' : nodeId
     })
   }, [])
+
+  const handleUnlockClick = useCallback((componentName: string) => {
+    setSelectedComponent(componentName)
+    setPurchaseModalOpen(true)
+  }, [])
+
+  const handlePurchaseComplete = async () => {
+    // Handle purchase completion logic here
+    setPurchaseModalOpen(false)
+    // You might want to refresh the offer data or update the UI
+  }
 
   // Generate all nodes once - use provided data or generate default
   const { nodes: allNodes, edges: allEdges } = data
@@ -613,23 +713,51 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
     setNodes(prevNodes =>
       prevNodes.map(node => {
         if (node.data.level === 'child') {
+          // Debug: Log the componentId to ensure it's being preserved
+          console.log(`Updating child node ${node.id} with componentId:`, node.data.componentId)
           return {
             ...node,
             data: {
               ...node.data,
               isExpanded: node.id === expandedNode,
               onToggle: toggleNode,
+              // Preserve componentId and other essential data
+              componentId: node.data.componentId,
+              subChildrenCount: node.data.subChildrenCount,
             },
           }
         } else if (node.data.level === 'subchild') {
           const parentId = node.data.parentId
           const isVisible = parentId === expandedNode
+
+          // Hide unlock nodes for pro users
+          if (node.data.isUnlockNode && isPro) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                isVisible: false,
+                onEdit: (id: string, newLabel: string) => editNode(id, newLabel),
+                onUnlockClick: undefined,
+                // Preserve essential data
+                parentComponentId: node.data.parentComponentId,
+                isUnlockNode: node.data.isUnlockNode,
+              },
+            }
+          }
+
           return {
             ...node,
             data: {
               ...node.data,
               isVisible,
               onEdit: (id: string, newLabel: string) => editNode(id, newLabel),
+              onUnlockClick: node.data.isUnlockNode
+                ? () => handleUnlockClick(node.data.label)
+                : undefined,
+              // Preserve essential data
+              parentComponentId: node.data.parentComponentId,
+              isUnlockNode: node.data.isUnlockNode,
             },
           }
         }
@@ -646,7 +774,7 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
     // Update edge visibility
     setEdges(prevEdges =>
       prevEdges.map(edge => {
-        if (edge.id.includes('subchild')) {
+        if (edge.id.includes('subchild') || edge.id.includes('unlock')) {
           const parentId = edge.source
           const isVisible = parentId === expandedNode
           return {
@@ -660,7 +788,7 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
         return edge
       })
     )
-  }, [expandedNode, setNodes, setEdges, toggleNode])
+  }, [expandedNode, setNodes, setEdges, toggleNode, handleUnlockClick, isPro])
 
   const editNode = useCallback(
     (nodeId: string, newLabel: string) => {
@@ -688,35 +816,6 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
           size="md"
         />
       </div>
-
-      {/* Expansion Controls */}
-      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">Quick Actions:</h4>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setExpandedNode('child-1')}
-            className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 transition-colors"
-          >
-            Show Dream Outcome
-          </button>
-          <button
-            onClick={() => setExpandedNode('')}
-            className="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded hover:bg-gray-600 transition-colors"
-          >
-            Collapse All
-          </button>
-          <button
-            onClick={() => setExpandedNode('child-6')}
-            className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded hover:bg-green-600 transition-colors"
-          >
-            Show Value Equation
-          </button>
-          <span className="text-sm text-blue-700 self-center ml-2 font-medium">
-            Currently expanded:{' '}
-            {expandedNode ? nodes.find(n => n.id === expandedNode)?.data.label || 'None' : 'None'}
-          </span>
-        </div>
-      </div> */}
 
       {/* Mindmap Content Area */}
       <div className="border-2 border-gray-300 rounded-lg bg-white">
@@ -790,6 +889,14 @@ export const SlamOfferMindmap: React.FC<SlamOfferMindmapProps> = ({ data }) => {
           </div>
         </div>
       </div>
+
+      {/* Purchase Modal */}
+      <PurchaseModal
+        isOpen={purchaseModalOpen}
+        onClose={() => setPurchaseModalOpen(false)}
+        offerTitle={selectedComponent || 'Grand Slam Offer Component'}
+        onPurchaseComplete={handlePurchaseComplete}
+      />
     </div>
   )
 }

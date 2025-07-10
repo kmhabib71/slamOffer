@@ -112,7 +112,7 @@ export function OfferResults({
       <div className="bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl p-6 mb-8">
         <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
           {/* View Mode Toggle */}
-          <div className="flex bg-slate-100 rounded-xl p-1">
+          {/* <div className="flex bg-slate-100 rounded-xl p-1">
             <button
               onClick={() => onViewModeChange('text')}
               className={`flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -135,7 +135,7 @@ export function OfferResults({
               <Target className="h-4 w-4 mr-2" />
               Mindmap
             </button>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
@@ -212,20 +212,16 @@ export function OfferResults({
 
       {/* Content Display */}
       <div className="bg-white/40 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-        {viewMode === 'text' && (
-          <OfferTextView
-            offer={offer}
-            onPurchaseClick={onPurchaseClick}
-            isPurchased={isPurchased}
-          />
-        )}
-        {viewMode === 'mindmap' && (
+        {/* {viewMode === 'text' && ( */}
+        <OfferTextView offer={offer} onPurchaseClick={onPurchaseClick} isPurchased={isPurchased} />
+        {/* )} */}
+        {/* {viewMode === 'mindmap' && (
           <OfferMindmapView
             offer={offer}
             onPurchaseClick={onPurchaseClick}
             isPurchased={isPurchased}
           />
-        )}
+        )} */}
       </div>
 
       {/* Bottom CTA for Free Users */}

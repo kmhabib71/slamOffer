@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { AdminAuthGuard } from '@/components/admin/admin-auth-guard'
 import { AdminNavigation } from '@/components/admin/admin-navigation'
+import DatabaseManagement from '@/components/admin/database-management'
 
 interface DashboardStats {
   totalUsers: number
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md border">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
             <div className="space-y-3">
@@ -157,6 +158,11 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Database Management */}
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-lg">
+          <DatabaseManagement />
         </div>
       </div>
     </AdminAuthGuard>

@@ -30,6 +30,7 @@ import { RealTimePackingAnimation } from '@/components/dashboard/real-time-packi
 import { DashboardNavigation } from '@/components/dashboard/dashboard-navigation'
 import { OfferResults } from '@/components/dashboard/offer-results'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'
+import { PricingCheck } from '@/components/dashboard/pricing-check'
 
 import { AuthGuard } from '@/components/auth/auth-guard'
 import { useTestMode } from '@/hooks/use-test-mode'
@@ -66,6 +67,10 @@ export default function DashboardPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [selectedComponent, setSelectedComponent] = useState<string | undefined>(undefined)
   const [isPurchased, setIsPurchased] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<
+    'starter_spark' | 'growth_engine' | 'agency_arsenal'
+  >('starter_spark')
 
   useEffect(() => {
     // Check if user has admin role
@@ -186,8 +191,8 @@ export default function DashboardPage() {
 
           // Save the offer to database with enhanced error handling
           try {
-            if (!user?._id) {
-              console.error('Cannot save offer: User ID is missing')
+            if (!user?.email) {
+              console.error('Cannot save offer: User email is missing')
               setError('Failed to save offer: User not authenticated')
               return
             }
@@ -199,7 +204,7 @@ export default function DashboardPage() {
               },
               body: JSON.stringify({
                 offerData: data.data,
-                userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
+                userTier: user?.profile?.subscription_tier !== 'free' ? 'pro' : 'free',
               }),
             })
 
@@ -230,8 +235,8 @@ export default function DashboardPage() {
       try {
         const request: CompleteOfferRequest = {
           businessContext,
-          userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
-          generateComplete: user?.profile?.subscription_tier === 'pro',
+          userTier: user?.profile?.subscription_tier !== 'free' ? 'pro' : 'free',
+          generateComplete: user?.profile?.subscription_tier !== 'free',
         }
 
         const response = await fetch('/api/generate-complete-offer', {
@@ -255,8 +260,8 @@ export default function DashboardPage() {
 
           // Save the offer to database with enhanced error handling
           try {
-            if (!user?._id) {
-              console.error('Cannot save offer: User ID is missing')
+            if (!user?.email) {
+              console.error('Cannot save offer: User email is missing')
               setError('Failed to save offer: User not authenticated')
               return
             }
@@ -268,7 +273,7 @@ export default function DashboardPage() {
               },
               body: JSON.stringify({
                 offerData: data.data,
-                userTier: user?.profile?.subscription_tier === 'pro' ? 'pro' : 'free',
+                userTier: user?.profile?.subscription_tier !== 'free' ? 'pro' : 'free',
               }),
             })
 
@@ -344,6 +349,24 @@ export default function DashboardPage() {
     setBusinessContext({
       businessDescription: '',
     })
+  }
+
+  const handleGenerateAllowed = () => {
+    generateOffer()
+  }
+
+  const handleUpgradeNeeded = () => {
+    setShowUpgradeModal(true)
+  }
+
+  const handlePackagePurchase = async () => {
+    setShowUpgradeModal(false)
+    // After successful purchase, refresh the user's auth context
+    // This will update their credits and subscription tier
+    if (user?.email) {
+      // In a real app, you might want to refresh the user's profile here
+      console.log('Package purchased successfully')
+    }
   }
 
   return (
@@ -474,26 +497,33 @@ export default function DashboardPage() {
                     </motion.div>
                   )}
 
-                  {/* Generate Button */}
+                  {/* Pricing Check Component */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
-                    className="mt-8 text-center"
+                    className="mt-8"
                   >
-                    <button
-                      onClick={generateOffer}
-                      disabled={!validateForm() || isGenerating}
-                      className="bg-gradient-to-r from-violet-500 to-sky-500 hover:from-violet-600 hover:to-sky-600 text-white font-bold text-xl px-12 py-4 rounded-xl shadow-2xl shadow-violet-500/25 transition-all duration-300 hover:shadow-violet-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 mx-auto group"
-                    >
-                      <Zap className="h-6 w-6 group-hover:animate-pulse" />
-                      <span>Generate My Grand Slam Offer</span>
-                      <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    <p className="text-sm text-slate-500 mt-4">
-                      ✨ Takes 30-60 seconds • 🎯 Powered by $100M methodology • 🚀 Instant results
-                    </p>
+                    {validateForm() ? (
+                      <PricingCheck
+                        onGenerateAllowed={handleGenerateAllowed}
+                        onUpgradeNeeded={handleUpgradeNeeded}
+                        className="max-w-md mx-auto"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <button
+                          disabled
+                          className="bg-gray-400 text-white font-bold text-xl px-12 py-4 rounded-xl cursor-not-allowed flex items-center space-x-3 mx-auto"
+                        >
+                          <Zap className="h-6 w-6" />
+                          <span>Complete Description First</span>
+                        </button>
+                        <p className="text-sm text-slate-500 mt-4">
+                          Please provide at least 10 characters in your business description
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 </div>
               </motion.div>
@@ -531,6 +561,16 @@ export default function DashboardPage() {
             onClose={() => setShowPurchaseModal(false)}
             offerTitle={selectedComponent || 'Complete Offer'}
             onPurchaseComplete={handlePurchaseComplete}
+          />
+        )}
+
+        {showUpgradeModal && (
+          <PurchaseModal
+            isOpen={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+            offerTitle="Choose Your Package"
+            packageType={selectedPackage}
+            onPurchaseComplete={handlePackagePurchase}
           />
         )}
       </div>

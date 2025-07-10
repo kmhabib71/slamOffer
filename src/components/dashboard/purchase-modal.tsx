@@ -18,6 +18,7 @@ interface PurchaseModalProps {
   onClose: () => void
   offerTitle: string
   onPurchaseComplete: () => Promise<void>
+  packageType?: 'starter_spark' | 'growth_engine' | 'agency_arsenal'
 }
 
 const DEMO_CARD = {
@@ -30,15 +31,65 @@ function CheckoutForm({
   offerTitle,
   onPurchaseComplete,
   onClose,
+  packageType = 'starter_spark',
 }: {
   offerTitle: string
   onPurchaseComplete: () => Promise<void>
   onClose: () => void
+  packageType?: 'starter_spark' | 'growth_engine' | 'agency_arsenal'
 }) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentSystem, setPaymentSystem] = useState<'2checkout' | 'stripe'>('2checkout')
+
+  // Package pricing information
+  const packageInfo = {
+    starter_spark: {
+      name: 'Starter Spark',
+      price: 9,
+      credits: 1,
+      description: 'Perfect for single offer creation',
+      features: [
+        '1 complete offer generation',
+        '2 offer regenerations included',
+        'Full offer components',
+        'Premium PDF export',
+        'Email support',
+        'Offer editing capabilities',
+      ],
+    },
+    growth_engine: {
+      name: 'Growth Engine',
+      price: 47,
+      credits: 10,
+      description: 'For growing businesses',
+      features: [
+        '10 complete offer generations',
+        'All premium features',
+        'Advanced offer components',
+        'Premium PDF export',
+        'Priority support',
+        'Offer editing & regeneration',
+      ],
+    },
+    agency_arsenal: {
+      name: 'Agency Arsenal',
+      price: 99,
+      credits: 30,
+      description: 'For agencies and teams',
+      features: [
+        '30 complete offer generations',
+        'All premium features',
+        'Advanced offer components',
+        'Premium PDF export',
+        'Priority support',
+        'Bulk offer management',
+      ],
+    },
+  }
+
+  const currentPackage = packageInfo[packageType]
 
   useEffect(() => {
     // Default to 2checkout payment system since we're not using Supabase anymore
@@ -51,8 +102,29 @@ function CheckoutForm({
     setPaymentError(null)
 
     try {
-      // Simulate payment processing for demo
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Call the package purchase API
+      const response = await fetch('/api/purchase-package', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packageType,
+          paymentDetails: {
+            // In a real app, this would contain payment processor details
+            method: 'demo',
+            amount: currentPackage.price,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Payment failed')
+      }
+
+      const data = await response.json()
+      console.log('Package purchase successful:', data)
 
       setPaymentSuccess(true)
       setIsProcessing(false)
@@ -85,7 +157,7 @@ function CheckoutForm({
       }, 1500)
     } catch (error) {
       console.error('Payment error:', error)
-      setPaymentError('Payment failed. Please try again.')
+      setPaymentError(error instanceof Error ? error.message : 'Payment failed. Please try again.')
       setIsProcessing(false)
     }
   }
@@ -108,24 +180,17 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Premium Features */}
+      {/* Package Features */}
       <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl p-6 border border-violet-100">
-        <h4 className="text-lg font-semibold text-slate-900 mb-4">Premium Features Included:</h4>
+        <h4 className="text-lg font-semibold text-slate-900 mb-2">{currentPackage.name} Package</h4>
+        <p className="text-slate-600 mb-4">{currentPackage.description}</p>
         <ul className="space-y-3">
-          <li className="flex items-start">
-            <CheckCircle className="w-5 h-5 text-violet-600 mt-0.5 mr-3 flex-shrink-0" />
-            <span className="text-slate-700">
-              Complete offer generation with up to 47 items per component
-            </span>
-          </li>
-          <li className="flex items-start">
-            <CheckCircle className="w-5 h-5 text-violet-600 mt-0.5 mr-3 flex-shrink-0" />
-            <span className="text-slate-700">Professional PDF export with custom branding</span>
-          </li>
-          <li className="flex items-start">
-            <CheckCircle className="w-5 h-5 text-violet-600 mt-0.5 mr-3 flex-shrink-0" />
-            <span className="text-slate-700">Priority access to new features and templates</span>
-          </li>
+          {currentPackage.features.map((feature, index) => (
+            <li key={index} className="flex items-start">
+              <CheckCircle className="w-5 h-5 text-violet-600 mt-0.5 mr-3 flex-shrink-0" />
+              <span className="text-slate-700">{feature}</span>
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -133,12 +198,17 @@ function CheckoutForm({
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h4 className="text-lg font-semibold text-slate-900">Complete Offer Access</h4>
-            <p className="text-sm text-slate-600 mt-1">One-time purchase for "{offerTitle}"</p>
+            <h4 className="text-lg font-semibold text-slate-900">{currentPackage.name} Package</h4>
+            <p className="text-sm text-slate-600 mt-1">
+              {currentPackage.credits} offer{currentPackage.credits > 1 ? 's' : ''} included
+            </p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-slate-900">$47</div>
+            <div className="text-2xl font-bold text-slate-900">${currentPackage.price}</div>
             <div className="text-sm text-slate-500">One-time payment</div>
+            <div className="text-xs text-violet-600 font-semibold">
+              ${(currentPackage.price / currentPackage.credits).toFixed(2)} per offer
+            </div>
           </div>
         </div>
 
@@ -227,7 +297,7 @@ function CheckoutForm({
             Processing...
           </span>
         ) : (
-          'Unlock Complete Offer Now'
+          `Purchase ${currentPackage.name} Package`
         )}
       </button>
     </form>
@@ -238,6 +308,7 @@ function StripeCheckoutForm(props: {
   offerTitle: string
   onPurchaseComplete: () => Promise<void>
   onClose: () => void
+  packageType?: 'starter_spark' | 'growth_engine' | 'agency_arsenal'
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -249,32 +320,9 @@ export function PurchaseModal({
   onClose,
   offerTitle,
   onPurchaseComplete,
+  packageType = 'starter_spark',
 }: PurchaseModalProps) {
-  const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [paymentSystem, setPaymentSystem] = useState<'2checkout' | 'stripe'>('2checkout')
-  const { user } = useAuth()
-
-  useEffect(() => {
-    // Default to 2checkout payment system since we're not using Supabase anymore
-    setPaymentSystem('2checkout')
-  }, [])
-
-  const handlePurchase = async () => {
-    setIsProcessing(true)
-    setError(null)
-
-    try {
-      await onPurchaseComplete()
-    } catch (err) {
-      console.error('Purchase error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to process purchase')
-      setIsProcessing(false)
-      return
-    }
-
-    setIsProcessing(false)
-  }
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -307,7 +355,6 @@ export function PurchaseModal({
                   <button
                     onClick={onClose}
                     className="text-slate-400 hover:text-slate-500 p-2 hover:bg-slate-100 rounded-full transition-colors"
-                    disabled={isProcessing}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -347,83 +394,12 @@ export function PurchaseModal({
                   </motion.div>
                 )}
 
-                <div className="space-y-6">
-                  <div className="bg-slate-50 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <CreditCard className="h-5 w-5 text-slate-600" />
-                        <span className="font-medium text-slate-900">Payment Details</span>
-                      </div>
-                      <span className="text-2xl font-bold text-slate-900">
-                        ${offerTitle.includes('Component') ? '19' : '47'}
-                      </span>
-                    </div>
-
-                    {paymentSystem === 'stripe' ? (
-                      <Elements stripe={stripePromise}>
-                        <div className="bg-white rounded-lg p-4 border border-slate-200">
-                          <CardElement
-                            options={{
-                              style: {
-                                base: {
-                                  fontSize: '16px',
-                                  color: '#424770',
-                                  '::placeholder': {
-                                    color: '#aab7c4',
-                                  },
-                                },
-                                invalid: {
-                                  color: '#9e2146',
-                                },
-                              },
-                            }}
-                          />
-                        </div>
-                      </Elements>
-                    ) : (
-                      <div className="bg-white rounded-lg p-4 border border-slate-200">
-                        <p className="text-sm text-slate-600">
-                          Demo mode: Click purchase to simulate payment
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-2 text-sm text-slate-600">
-                    <Shield className="h-4 w-4" />
-                    <span>Your payment is secure and encrypted</span>
-                  </div>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 focus:outline-none"
-                      onClick={onClose}
-                      disabled={isProcessing}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className={`inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm focus:outline-none ${
-                        isProcessing
-                          ? 'bg-indigo-400 cursor-not-allowed'
-                          : 'bg-indigo-600 hover:bg-indigo-700'
-                      }`}
-                      onClick={handlePurchase}
-                      disabled={isProcessing}
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Complete Purchase'
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <CheckoutForm
+                  offerTitle={offerTitle}
+                  onPurchaseComplete={onPurchaseComplete}
+                  onClose={onClose}
+                  packageType={packageType}
+                />
               </Dialog.Panel>
             </Transition.Child>
           </div>

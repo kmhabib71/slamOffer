@@ -9,7 +9,7 @@ import {
   GrandSlamComponent,
   MindmapItem,
 } from '@/types'
-import { SlamOfferMindmap } from '@/components/slam-offer-mindmap'
+// import { SlamOfferMindmap } from '@/components/slam-offer-mindmap'
 import { useAuth } from '@/app/providers/auth-provider'
 
 // Client-safe version for components
@@ -208,9 +208,9 @@ export function OfferMindmapView({ offer, onPurchaseClick, isPurchased }: OfferM
         </div>
 
         {/* Mindmap Display */}
-        <div className="relative" style={{ height: '800px' }}>
+        {/* <div className="relative" style={{ height: '800px' }}>
           <SlamOfferMindmap data={mindmapData as any} />
-        </div>
+        </div> */}
       </div>
 
       {/* Mindmap Instructions */}

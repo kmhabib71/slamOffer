@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useSession, signOut as nextAuthSignOut } from 'next-auth/react'
 import { identifyUser } from '@/lib/posthog'
-import { UserProfile } from '@/lib/models/user'
+import { UserProfile } from '@/lib/auth-types'
 
 interface User {
   _id: string
@@ -81,6 +81,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           subscription_tier: currentUser.profile?.subscription_tier,
           credits_remaining: currentUser.profile?.credits_remaining,
         })
+
+        // Check if user was trying to access a specific plan
+        const intendedPlan = sessionStorage.getItem('intended-plan')
+        if (intendedPlan) {
+          sessionStorage.removeItem('intended-plan')
+          window.location.href = `/checkout?plan=${intendedPlan}`
+        }
       }
     } catch (error) {
       console.error('Error refreshing user:', error)

@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth-config'
 import { getUserOffers } from '@/lib/offers'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session?.user || !(session.user as any).id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const result = await getUserOffers((session.user as any).id)
+    const result = await getUserOffers(session.user.email)
 
     if (result.success) {
       return NextResponse.json({ success: true, data: result.data })

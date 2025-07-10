@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise
     const db = client.db()
 
-    // Check if user already exists
-    const existingUser = await db.collection('users').findOne({ email })
+    // Check if user already exists - AI-FRIENDLY: Uses unified user_profiles collection
+    const existingUser = await db.collection('user_profiles').findOne({ email })
     if (existingUser) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 })
     }
@@ -30,45 +30,43 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Create user
+    // Create unified user (combines auth + profile data) - AI-FRIENDLY approach
     const now = new Date()
-    const newUser = {
+    const unifiedUser = {
       _id: new ObjectId(),
+      // Authentication fields
       email,
       password: hashedPassword,
       name: name || null,
       image: null,
       role: 'user',
       emailVerified: null,
+      // Subscription fields
+      subscription_tier: 'free' as const,
+      credits_remaining: 3,
+      total_offers_generated: 0,
+      daily_generation_count: 0,
+      purchased_offers_count: 0,
+      // Timestamps (both formats for compatibility)
+      created_at: now,
+      updated_at: now,
       createdAt: now,
       updatedAt: now,
     }
 
-    const result = await db.collection('users').insertOne(newUser)
+    const result = await db.collection('user_profiles').insertOne(unifiedUser)
 
     if (!result.acknowledged) {
       throw new Error('Failed to create user')
     }
 
-    // Create user profile
-    const userProfile = {
-      _id: new ObjectId(),
-      userId: newUser._id.toString(),
-      subscription_tier: 'free' as const,
-      credits_remaining: 3,
-      created_at: now,
-      updated_at: now,
-    }
-
-    await db.collection('user_profiles').insertOne(userProfile)
-
     return NextResponse.json(
       {
         message: 'User created successfully',
         user: {
-          id: newUser._id.toString(),
-          email: newUser.email,
-          name: newUser.name,
+          id: unifiedUser._id.toString(),
+          email: unifiedUser.email,
+          name: unifiedUser.name,
         },
       },
       { status: 201 }

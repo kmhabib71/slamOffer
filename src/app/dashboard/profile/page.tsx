@@ -2,7 +2,9 @@
 
 import { useAuth } from '@/app/providers/auth-provider'
 import { DashboardNavigation } from '@/components/dashboard/dashboard-navigation'
+import { subscriptionHelpers } from '@/lib/subscription-helpers'
 import { motion } from 'framer-motion'
+import ProfilePricing from '@/components/dashboard/profile-pricing'
 import {
   User,
   Mail,
@@ -130,7 +132,8 @@ export default function ProfilePage() {
     )
   }
 
-  const isPro = user.profile?.subscription_tier === 'pro'
+  const isPro = user.profile?.subscription_tier !== 'free'
+  const subscriptionTier = user.profile?.subscription_tier || 'free'
 
   return (
     <div className="min-h-screen relative bg-[#F9FAFB] dotted-bg">
@@ -193,9 +196,17 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex items-center justify-center space-x-2 mb-4">
-                    <div className="flex items-center space-x-2 bg-gradient-to-r from-violet-100 to-sky-100 text-violet-700 px-3 py-1 rounded-full border border-violet-200">
-                      <Target className="h-4 w-4" />
-                      <span className="text-sm font-semibold">Offer Creator</span>
+                    <div
+                      className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${
+                        isPro
+                          ? 'bg-gradient-to-r from-violet-100 to-sky-100 text-violet-700 border-violet-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {isPro ? <Crown className="h-4 w-4" /> : <Target className="h-4 w-4" />}
+                      <span className="text-sm font-semibold">
+                        {subscriptionHelpers.getTierDisplayName(subscriptionTier as any)}
+                      </span>
                     </div>
                   </div>
 
@@ -226,7 +237,14 @@ export default function ProfilePage() {
 
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Free Offers Generated</span>
+                      <span className="text-slate-600">Credits Remaining</span>
+                      <span className="font-bold text-emerald-600 text-lg">
+                        {apiUsage.creditsRemaining}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600">Total Offers Generated</span>
                       <button
                         onClick={() => window.open('/previous-offers', '_blank')}
                         className="flex items-center space-x-1 font-bold text-violet-600 hover:text-violet-700 transition-colors"
@@ -236,22 +254,17 @@ export default function ProfilePage() {
                       </button>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Remaining Free Offers</span>
-                      <span className="font-bold text-emerald-600">
-                        {Math.max(0, 3 - apiUsage.totalOffers)}
-                      </span>
-                    </div>
+                    {subscriptionTier === 'free' && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">Today's Generations</span>
+                        <span className="font-bold text-slate-800">
+                          {apiUsage.dailyGenerationCount} / 1
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Today's Generations</span>
-                      <span className="font-bold text-slate-800">
-                        {apiUsage.dailyGenerationCount} / 1
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Offers Purchased</span>
+                      <span className="text-slate-600">Premium Offers</span>
                       <button
                         onClick={() => window.open('/previous-offers', '_blank')}
                         className="flex items-center space-x-1 font-bold text-sky-600 hover:text-sky-700 transition-colors"
@@ -260,6 +273,23 @@ export default function ProfilePage() {
                         <ExternalLink className="h-3 w-3" />
                       </button>
                     </div>
+
+                    {user.profile?.package_details && (
+                      <div className="mt-4 p-3 bg-gradient-to-r from-violet-50 to-sky-50 rounded-lg border border-violet-200">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-violet-700 font-medium">Package Value</span>
+                          <span className="text-sm font-bold text-violet-700">
+                            ${user.profile.package_details.total_package_value}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-violet-600">Price per offer</span>
+                          <span className="text-xs font-semibold text-violet-600">
+                            ${user.profile.package_details.price_per_offer}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -273,14 +303,25 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Daily Limit</span>
-                      <span className="font-bold text-slate-800">1 per day</span>
-                    </div>
+                    {subscriptionTier === 'free' && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">Daily Limit</span>
+                          <span className="font-bold text-slate-800">1 per day</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">Total Free Limit</span>
+                          <span className="font-bold text-slate-800">3 offers max</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600">Total Free Limit</span>
-                      <span className="font-bold text-slate-800">3 offers max</span>
+                      <span className="text-slate-600">Current Plan</span>
+                      <span className="font-bold text-slate-800">
+                        {subscriptionHelpers.getTierDisplayName(subscriptionTier as any)}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center">
@@ -293,16 +334,22 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="mt-4 p-3 bg-gradient-to-r from-violet-50 to-sky-50 rounded-lg border border-violet-200">
-                      <p className="text-sm text-violet-700 font-medium">
-                        💡 Purchase individual offers to unlock full versions with all strategies!
-                      </p>
+                      {subscriptionTier === 'free' ? (
+                        <p className="text-sm text-violet-700 font-medium">
+                          💡 Upgrade to unlock more credits and better pricing per offer!
+                        </p>
+                      ) : (
+                        <p className="text-sm text-violet-700 font-medium">
+                          🎉 You have access to premium features and better pricing!
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-6 mt-6">
+              {/* <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-6 mt-6">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-white" />
@@ -319,9 +366,14 @@ export default function ProfilePage() {
                     Start generating offers to see your activity here
                   </p>
                 </div>
-              </div>
+              </div> */}
             </motion.div>
+            {/* Pricing Section */}
           </div>
+          <ProfilePricing
+            subscriptionTier={subscriptionTier}
+            creditsRemaining={apiUsage.creditsRemaining}
+          />
         </motion.div>
       </main>
     </div>

@@ -1,8 +1,8 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Image, Link, Font } from '@react-pdf/renderer'
-import { GrandSlamOfferData } from '@/types'
+import { CompleteGrandSlamOffer } from '@/types'
 
-// PDF Template Styles matching the cosmic theme
+// PDF Template Styles matching the text view design
 const styles = StyleSheet.create({
   // Page styles
   page: {
@@ -19,15 +19,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     fontSize: 12,
     padding: 0,
-    backgroundColor: '#0A0E1A',
-    color: '#ffffff',
+    backgroundColor: '#ffffff',
+    color: '#000000',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  // Cover page styles
+  // Cover page styles with SVG background
   coverImageContainer: {
     position: 'absolute',
     top: 0,
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(10, 14, 26, 0.8)',
+    backgroundColor: 'rgba(139, 69, 19, 0.1)', // Subtle overlay for text readability
   },
   coverContent: {
     position: 'absolute',
@@ -61,22 +61,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   coverTitle: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#06B6D4',
+    color: '#8B4513',
     textAlign: 'center',
     marginBottom: 20,
   },
   coverSubtitle: {
-    fontSize: 24,
-    color: '#8B5CF6',
+    fontSize: 20,
+    color: '#CD853F',
     textAlign: 'center',
     marginBottom: 30,
     fontWeight: 'bold',
   },
   coverDescription: {
-    fontSize: 16,
-    color: '#F8FAFC',
+    fontSize: 14,
+    color: '#654321',
     textAlign: 'center',
     maxWidth: 400,
     lineHeight: 1.8,
@@ -91,189 +91,245 @@ const styles = StyleSheet.create({
   },
   brandingText: {
     fontSize: 14,
-    color: '#06B6D4',
+    color: '#8B4513',
     fontWeight: 'bold',
   },
   brandingSubtext: {
     fontSize: 10,
-    color: '#8B5CF6',
+    color: '#CD853F',
     marginTop: 5,
   },
 
-  // Header styles
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  // Business description section
+  businessDescriptionContainer: {
     marginBottom: 30,
-    paddingBottom: 15,
-    borderBottomWidth: 2,
-    borderBottomColor: '#06B6D4',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0A0E1A',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#8B5CF6',
-    marginTop: 5,
-  },
-
-  // Table of Contents styles
-  tocContainer: {
-    marginBottom: 30,
-  },
-  tocTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0A0E1A',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  tocItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginBottom: 5,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#06B6D4',
-  },
-  tocNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-    width: 30,
-  },
-  tocText: {
-    fontSize: 14,
-    color: '#0A0E1A',
-    flex: 1,
-    marginLeft: 10,
-  },
-  tocPage: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-
-  // Component styles
-  componentContainer: {
-    marginBottom: 40,
     padding: 20,
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  componentHeader: {
+  businessDescriptionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#06B6D4',
   },
-  componentNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  businessDescriptionIcon: {
+    width: 40,
+    height: 40,
     backgroundColor: '#8B5CF6',
-    color: '#ffffff',
-    marginRight: 10,
-    padding: 8,
-    borderRadius: 20,
-    width: 35,
-    textAlign: 'center',
+    borderRadius: 8,
+    marginRight: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  businessDescriptionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  businessDescriptionText: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 1.6,
+  },
+
+  // Component header styles matching text view gradients
+  componentContainer: {
+    marginBottom: 40,
+  },
+  componentHeader: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Gradient backgrounds for each component (approximated with solid colors)
+  componentHeader1: { backgroundColor: '#EC4899' }, // Pink gradient
+  componentHeader2: { backgroundColor: '#F97316' }, // Orange gradient
+  componentHeader3: { backgroundColor: '#3B82F6' }, // Blue gradient
+  componentHeader4: { backgroundColor: '#10B981' }, // Emerald gradient
+  componentHeader5: { backgroundColor: '#F59E0B' }, // Amber gradient
+  componentHeader6: { backgroundColor: '#8B5CF6' }, // Purple gradient
+  componentHeader7: { backgroundColor: '#EF4444' }, // Red gradient
+  componentHeader8: { backgroundColor: '#0EA5E9' }, // Sky gradient
+  componentHeader9: { backgroundColor: '#8B5CF6' }, // Violet gradient
+  componentHeader10: { backgroundColor: '#14B8A6' }, // Teal gradient
+  componentHeader11: { backgroundColor: '#06B6D4' }, // Cyan gradient
+
+  componentIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    marginRight: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  componentHeaderContent: {
+    flex: 1,
   },
   componentTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0A0E1A',
-    marginBottom: 10,
+    color: '#ffffff',
+    marginBottom: 4,
   },
   componentDescription: {
     fontSize: 14,
-    color: '#64748B',
-    marginBottom: 20,
-    fontStyle: 'italic',
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  componentStats: {
+    textAlign: 'right',
+  },
+  componentStatsNumber: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  componentStatsLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.75)',
   },
 
-  // Item styles
+  // Component items list
+  itemsContainer: {
+    marginLeft: 20,
+  },
   itemContainer: {
-    marginBottom: 15,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#06B6D4',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E2E8F0',
+  },
+  itemNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+    marginTop: 2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemNumberText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  itemContent: {
+    flex: 1,
   },
   itemTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0A0E1A',
-    marginBottom: 5,
+    color: '#1E293B',
+    marginBottom: 4,
   },
-  itemContent: {
+  itemDescription: {
     fontSize: 12,
     color: '#475569',
-    lineHeight: 1.6,
+    lineHeight: 1.5,
+  },
+  itemTags: {
+    flexDirection: 'row',
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  valueTag: {
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
+    fontSize: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  priorityTag: {
+    backgroundColor: '#FEF3C7',
+    color: '#92400E',
+    fontSize: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+
+  // Special styles for Solutions component (component 3)
+  solutionsItemContainer: {
+    marginBottom: 20,
+  },
+  problemSolutionRow: {
+    marginTop: 8,
+  },
+  problemLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#DC2626',
+    marginBottom: 4,
+  },
+  solutionLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#059669',
+    marginBottom: 4,
+  },
+  problemText: {
+    fontSize: 11,
+    color: '#475569',
+    marginBottom: 8,
+  },
+  solutionText: {
+    fontSize: 11,
+    color: '#475569',
   },
 
   // Footer styles
   footer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     left: 35,
     right: 35,
     textAlign: 'center',
-    fontSize: 10,
-    color: '#64748B',
-    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
+    paddingTop: 10,
   },
-
-  // Section break styles
-  sectionBreak: {
-    marginTop: 30,
-    marginBottom: 30,
-    height: 2,
-    backgroundColor: '#06B6D4',
-  },
-
-  // Value equation styles
-  valueEquation: {
-    backgroundColor: '#EFF6FF',
-    padding: 20,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#06B6D4',
-  },
-  equationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0A0E1A',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  equationFormula: {
-    fontSize: 14,
-    color: '#8B5CF6',
-    textAlign: 'center',
-    fontFamily: 'Courier',
-    backgroundColor: '#F1F5F9',
-    padding: 10,
-    borderRadius: 4,
+  footerText: {
+    fontSize: 10,
+    color: '#64748B',
   },
 })
 
+// Component color mapping for item numbers
+const getComponentColor = (componentId: number) => {
+  const colors: Record<number, string> = {
+    1: '#EC4899', // Pink
+    2: '#F97316', // Orange
+    3: '#3B82F6', // Blue
+    4: '#10B981', // Emerald
+    5: '#F59E0B', // Amber
+    6: '#8B5CF6', // Purple
+    7: '#EF4444', // Red
+    8: '#0EA5E9', // Sky
+    9: '#8B5CF6', // Violet
+    10: '#14B8A6', // Teal
+    11: '#06B6D4', // Cyan
+  }
+  return colors[componentId] || '#8B5CF6'
+}
+
 interface PDFTemplateProps {
-  data: GrandSlamOfferData
+  data: CompleteGrandSlamOffer
   userInfo?: {
     businessName?: string
     ownerName?: string
@@ -287,7 +343,7 @@ interface PDFTemplateProps {
 export const GrandSlamOfferPDFTemplate: React.FC<PDFTemplateProps> = ({
   data,
   userInfo = {},
-  coverImageUrl,
+  coverImageUrl = '/GrandSlamCover.svg',
 }) => {
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
@@ -299,14 +355,12 @@ export const GrandSlamOfferPDFTemplate: React.FC<PDFTemplateProps> = ({
     <Document>
       {/* Cover Page */}
       <Page size="A4" style={styles.coverPage}>
-        {coverImageUrl && (
-          <View style={styles.coverImageContainer}>
-            <Image style={styles.coverImage} src={coverImageUrl} />
-          </View>
-        )}
+        <View style={styles.coverImageContainer}>
+          <Image style={styles.coverImage} src={coverImageUrl} />
+        </View>
         <View style={styles.coverOverlay} />
         <View style={styles.coverContent}>
-          <Text style={styles.coverTitle}>{data.title}</Text>
+          <Text style={styles.coverTitle}>Grand Slam Offer</Text>
           <Text style={styles.coverSubtitle}>The Ultimate Irresistible Offer</Text>
           <Text style={styles.coverDescription}>
             A complete Grand Slam Offer built using Alex Hormozi's proven $100M methodology. This
@@ -328,147 +382,123 @@ export const GrandSlamOfferPDFTemplate: React.FC<PDFTemplateProps> = ({
         </View>
       </Page>
 
-      {/* Table of Contents */}
+      {/* Content Pages */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Table of Contents</Text>
-            <Text style={styles.headerSubtitle}>Your Grand Slam Offer Blueprint</Text>
-          </View>
-        </View>
-
-        <View style={styles.tocContainer}>
-          <Text style={styles.tocTitle}>The 11 Components</Text>
-
-          {/* Value Equation */}
-          <View style={styles.valueEquation}>
-            <Text style={styles.equationTitle}>The Value Equation</Text>
-            <Text style={styles.equationFormula}>
-              Value = (Dream Outcome × Likelihood) / (Time Delay × Effort & Sacrifice)
-            </Text>
-          </View>
-
-          {data.components.map((component, index) => (
-            <View key={component.id} style={styles.tocItem}>
-              <Text style={styles.tocNumber}>{String(index + 1).padStart(2, '0')}</Text>
-              <Text style={styles.tocText}>{component.title}</Text>
-              <Text style={styles.tocPage}>Page {index + 4}</Text>
+        {/* Business Description */}
+        <View style={styles.businessDescriptionContainer}>
+          <View style={styles.businessDescriptionHeader}>
+            <View style={styles.businessDescriptionIcon}>
+              <Text style={{ color: '#ffffff', fontSize: 16 }}>💼</Text>
             </View>
-          ))}
-        </View>
-
-        <View style={styles.footer}>
-          <Text>
-            This Grand Slam Offer was generated using proven methodologies from Alex Hormozi's $100M
-            Offers
+            <Text style={styles.businessDescriptionTitle}>Your Business Description</Text>
+          </View>
+          <Text style={styles.businessDescriptionText}>
+            {data.businessContext.businessDescription}
           </Text>
         </View>
-      </Page>
 
-      {/* Component Pages */}
-      {data.components.map((component, componentIndex) => (
-        <Page key={component.id} size="A4" style={styles.page}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.headerTitle}>{data.title}</Text>
-              <Text style={styles.headerSubtitle}>Component {componentIndex + 1} of 11</Text>
-            </View>
-          </View>
+        {/* Components */}
+        {data.components.map((component, index) => {
+          const componentColor = getComponentColor(component.componentId)
+          const headerStyle = [styles.componentHeader, { backgroundColor: componentColor }]
 
-          <View style={styles.componentContainer}>
-            <Text style={styles.componentTitle}>
-              {componentIndex + 1}. {component.title}
-            </Text>
+          return (
+            <View key={component.componentId} style={styles.componentContainer} break={index > 0}>
+              {/* Component Header */}
+              <View style={headerStyle}>
+                <View style={styles.componentIconContainer}>
+                  <Text style={{ color: '#ffffff', fontSize: 16 }}>
+                    {component.componentId === 1
+                      ? '🎯'
+                      : component.componentId === 2
+                        ? '⚠️'
+                        : component.componentId === 3
+                          ? '💡'
+                          : component.componentId === 4
+                            ? '🚀'
+                            : component.componentId === 5
+                              ? '📊'
+                              : component.componentId === 6
+                                ? '📦'
+                                : component.componentId === 7
+                                  ? '⏰'
+                                  : component.componentId === 8
+                                    ? '⚡'
+                                    : component.componentId === 9
+                                      ? '⭐'
+                                      : component.componentId === 10
+                                        ? '🛡️'
+                                        : '✨'}
+                  </Text>
+                </View>
+                <View style={styles.componentHeaderContent}>
+                  <Text style={styles.componentTitle}>
+                    {component.componentId}. {component.componentName}
+                  </Text>
+                  <Text style={styles.componentDescription}>{component.description}</Text>
+                </View>
+                <View style={styles.componentStats}>
+                  <Text style={styles.componentStatsNumber}>
+                    {component.items.length} strategies
+                  </Text>
+                  <Text style={styles.componentStatsLabel}>complete roadmap</Text>
+                </View>
+              </View>
 
-            <Text style={styles.componentDescription}>{component.description}</Text>
-
-            {component.items && component.items.length > 0 && (
-              <View>
+              {/* Component Items */}
+              <View style={styles.itemsContainer}>
                 {component.items.map((item, itemIndex) => (
                   <View key={item.id} style={styles.itemContainer}>
-                    <Text style={styles.itemTitle}>
-                      {itemIndex + 1}. {item.title}
-                    </Text>
-                    <Text style={styles.itemContent}>{item.content}</Text>
+                    <View style={[styles.itemNumber, { backgroundColor: componentColor }]}>
+                      <Text style={styles.itemNumberText}>{itemIndex + 1}</Text>
+                    </View>
+                    <View style={styles.itemContent}>
+                      {component.componentId === 3 ? (
+                        // Special layout for Solutions component
+                        <View style={styles.solutionsItemContainer}>
+                          <Text style={styles.itemTitle}>{item.title}</Text>
+                          <View style={styles.itemTags}>
+                            {item.value && item.value !== '$0 value' && item.value !== '$0' && (
+                              <Text style={styles.valueTag}>{item.value}</Text>
+                            )}
+                            {item.priority === 'high' && (
+                              <Text style={styles.priorityTag}>High Impact</Text>
+                            )}
+                          </View>
+                          <View style={styles.problemSolutionRow}>
+                            <Text style={styles.problemLabel}>Problem:</Text>
+                            <Text style={styles.problemText}>{item.linkedProblem}</Text>
+                            <Text style={styles.solutionLabel}>Solution:</Text>
+                            <Text style={styles.solutionText}>{item.solutionDetails}</Text>
+                          </View>
+                        </View>
+                      ) : (
+                        // Standard layout for other components
+                        <View>
+                          <Text style={styles.itemTitle}>{item.title}</Text>
+                          <View style={styles.itemTags}>
+                            {item.value && item.value !== '$0 value' && item.value !== '$0' && (
+                              <Text style={styles.valueTag}>{item.value}</Text>
+                            )}
+                            {item.priority === 'high' && (
+                              <Text style={styles.priorityTag}>High Impact</Text>
+                            )}
+                          </View>
+                          <Text style={styles.itemDescription}>{item.description}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 ))}
               </View>
-            )}
-          </View>
+            </View>
+          )
+        })}
 
-          <View style={styles.footer}>
-            <Text>
-              Page {componentIndex + 4} | {userInfo.businessName || 'Grand Slam Offer'} | Generated{' '}
-              {currentDate}
-            </Text>
-          </View>
-        </Page>
-      ))}
-
-      {/* Summary Page */}
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Implementation Summary</Text>
-            <Text style={styles.headerSubtitle}>Your Next Steps</Text>
-          </View>
-        </View>
-
-        <View style={styles.componentContainer}>
-          <Text style={styles.componentTitle}>🎯 Your Grand Slam Offer is Ready!</Text>
-          <Text style={styles.componentDescription}>
-            You now have a complete offer built using Alex Hormozi's proven methodology. Here's how
-            to implement it:
-          </Text>
-
-          <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>1. Review & Customize</Text>
-            <Text style={styles.itemContent}>
-              Review each component and customize the details to match your specific business,
-              audience, and market conditions.
-            </Text>
-          </View>
-
-          <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>2. Test Your Messaging</Text>
-            <Text style={styles.itemContent}>
-              Start with small tests to validate your offer messaging before rolling out to your
-              entire audience.
-            </Text>
-          </View>
-
-          <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>3. Create Your Sales Materials</Text>
-            <Text style={styles.itemContent}>
-              Use this document as the foundation for your sales pages, presentations, and marketing
-              materials.
-            </Text>
-          </View>
-
-          <View style={styles.itemContainer}>
-            <Text style={styles.itemTitle}>4. Launch & Optimize</Text>
-            <Text style={styles.itemContent}>
-              Launch your offer and continuously optimize based on customer feedback and conversion
-              data.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.valueEquation}>
-          <Text style={styles.equationTitle}>
-            Remember: Make It So Good They Feel Stupid Saying No
-          </Text>
-          <Text style={styles.itemContent}>
-            Your offer should be so compelling, so valuable, and so risk-free that your ideal
-            customers can't help but say yes. If they're not saying yes, revisit the components and
-            increase the value or reduce the risk.
-          </Text>
-        </View>
-
+        {/* Footer */}
         <View style={styles.footer}>
-          <Text>
-            Final Page | Thank you for using GrandSlamGenerator.ai | Visit us at
-            grandslamgenerator.ai
+          <Text style={styles.footerText}>
+            Generated by GrandSlamGenerator.ai • Powered by Alex Hormozi's $100M Offers Methodology
           </Text>
         </View>
       </Page>

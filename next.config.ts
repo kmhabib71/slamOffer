@@ -41,6 +41,18 @@ const nextConfig: NextConfig = {
         kerberos: 'commonjs kerberos',
         '@mongodb-js/zstd': 'commonjs @mongodb-js/zstd',
       })
+
+      // Additional MongoDB modules to exclude
+      config.module.rules.push({
+        test: /node_modules\/mongodb/,
+        use: 'null-loader',
+      })
+
+      // Also exclude our auth lib from client bundle
+      config.module.rules.push({
+        test: /src\/lib\/auth\.ts$/,
+        use: 'null-loader',
+      })
     }
     return config
   },

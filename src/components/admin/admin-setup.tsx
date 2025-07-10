@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { authService } from '@/lib/auth'
 
 export function AdminSetup() {
   const { data: session } = useSession()
@@ -21,12 +20,23 @@ export function AdminSetup() {
     setMessage('')
 
     try {
-      const result = await authService.createAdminUser(session.user.email, 'admin')
+      const response = await fetch('/api/admin/create-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+          role: 'admin',
+        }),
+      })
 
-      if (result) {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         setMessage('Admin user created successfully!')
       } else {
-        setError('Failed to create admin user')
+        setError(data.error || 'Failed to create admin user')
       }
     } catch (error) {
       console.error('Error creating admin user:', error)
@@ -47,12 +57,23 @@ export function AdminSetup() {
     setMessage('')
 
     try {
-      const isAdmin = await authService.isUserAdmin(session.user.email)
+      const response = await fetch('/api/admin/check-status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (isAdmin) {
-        setMessage('You are already an admin user!')
+      const data = await response.json()
+
+      if (response.ok) {
+        if (data.isAdmin) {
+          setMessage('You are already an admin user!')
+        } else {
+          setMessage('You are not an admin user')
+        }
       } else {
-        setMessage('You are not an admin user')
+        setError(data.error || 'Failed to check admin status')
       }
     } catch (error) {
       console.error('Error checking admin status:', error)
