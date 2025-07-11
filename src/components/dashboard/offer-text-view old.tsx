@@ -39,7 +39,7 @@ type ClientSafeOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_id'> & {
 
 interface OfferTextViewProps {
   offer: ClientSafeOffer
-  onPurchaseClick: () => void
+  onPurchaseClick: (componentName?: string) => void
   isPurchased?: boolean
 }
 
@@ -99,20 +99,20 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
   const { user } = useAuth()
   // isPurchased indicates if the offer owner has purchased the full version
   // This determines what content is available to view (for both owner and public viewers)
-  const isPro = user?.profile?.subscription_tier !== 'free' || isPurchased
+  const isPro = user?.profile?.subscription_tier === 'pro' || isPurchased
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [purchasedOffer, setPurchasedOffer] = useState<ClientSafeOffer | null>(null)
   const [expandedComponents, setExpandedComponents] = useState<Set<number>>(new Set())
-  // PDF Export functionality - only available for pro users or purchased offers
-  const [isPDFGenerating, setIsPDFGenerating] = useState(false)
 
   // Check if this is a full offer (pro user or purchased offer)
   // If the user has purchased the offer, always treat it as a full offer
   // regardless of the actual item count (in case AI generation didn't work properly)
   const isFullOffer = isPro
 
-  const handlePurchaseClick = () => {
+  const handlePurchaseClick = (componentName: string) => {
+    setSelectedComponent(componentName)
     setPurchaseModalOpen(true)
   }
 
@@ -198,6 +198,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
   // Show purchased offer if available
   const displayOffer = purchasedOffer || offer
 
+  // PDF Export functionality - only available for pro users or purchased offers
+  const [isPDFGenerating, setIsPDFGenerating] = useState(false)
+
   const handlePDFExport = async () => {
     if (!isPro) {
       // Show purchase modal for non-pro users
@@ -231,22 +234,16 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 
                 /* Cover Page */
                 .cover-page {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: 100%;
-                  height: 100%;
+                  position: relative;
+                  width: 100vw;
+                  height: 100vh;
                   background: url('/GrandSlamCover.svg') center/cover no-repeat;
-                  background-size: cover;
                   display: flex;
                   flex-direction: column;
                   justify-content: center;
                   align-items: center;
                   text-align: center;
                   page-break-after: always;
-                  margin: 0;
-                  padding: 0;
-                  box-sizing: border-box;
                 }
                 .cover-overlay {
                   position: absolute;
@@ -260,10 +257,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                   position: relative;
                   z-index: 10;
                   padding: 60px;
-                  color: #ffffff;
-                }
-                .cover-content * {
-                  color: #ffffff !important;
+                  color: #8B4513;
                 }
                 .cover-title {
                   font-size: 48px;
@@ -274,7 +268,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 .cover-subtitle {
                   font-size: 24px;
                   margin-bottom: 30px;
-                  color: #ffffff !important;
+                  color: #CD853F;
                   font-weight: bold;
                 }
                 .cover-description {
@@ -282,15 +276,14 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                   max-width: 400px;
                   line-height: 1.8;
                   margin-bottom: 40px;
-                  color: #ffffff !important;
+                  color: #654321;
                 }
                 
                 /* Content Pages */
                 .content-page {
                   padding: 40px;
                   max-width: 800px;
-                  margin: 40px auto;
-                  min-height: calc(100vh - 80px);
+                  margin: 0 auto;
                 }
                 
                 /* Business Description */
@@ -331,9 +324,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 .component {
                   margin-bottom: 40px;
                   page-break-inside: avoid;
-                }
-                .component:first-of-type {
-                  margin-top: 20px;
                 }
                 .component-header {
                   padding: 24px;
@@ -477,98 +467,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                   body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                   .page-break { page-break-before: always; }
                   .no-break { page-break-inside: avoid; }
-                  
-                  /* Custom page setup - no browser headers/footers */
-                  @page { 
-                    margin: 15mm 10mm; 
-                    size: A4;
-                  }
-                  @page:first { 
-                    margin: 0; 
-                  }
-                  
-                  /* Hide browser default headers/footers */
-                  @page { 
-                    @top-left { content: ""; }
-                    @top-right { content: ""; }
-                    @bottom-left { content: ""; }
-                    @bottom-right { content: counter(page) " / " counter(pages); font-size: 11px; color: #666; }
-                  }
-                  
-                  /* Table of Contents */
-                  .table-of-contents {
-                    padding: 40px;
-                    max-width: 800px;
-                    margin: 40px auto;
-                    page-break-after: always;
-                  }
-                  .toc-title {
-                    font-size: 32px;
-                    font-weight: bold;
-                    color: #1e293b;
-                    margin-bottom: 30px;
-                    text-align: center;
-                    border-bottom: 3px solid #8b5cf6;
-                    padding-bottom: 15px;
-                  }
-                  .toc-item {
-                    display: flex;
-                    align-items: center;
-                    padding: 12px 0;
-                    border-bottom: 1px dotted #e2e8f0;
-                  }
-                  .toc-number {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    font-size: 16px;
-                    margin-right: 16px;
-                    flex-shrink: 0;
-                  }
-                  .toc-content {
-                    flex: 1;
-                  }
-                  .toc-chapter {
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #1e293b;
-                    margin-bottom: 4px;
-                  }
-                  .toc-description {
-                    font-size: 14px;
-                    color: #64748b;
-                  }
-                  .toc-page {
-                    font-size: 16px;
-                    font-weight: bold;
-                    color: #8b5cf6;
-                    margin-left: 16px;
-                  }
-                  .toc-dots {
-                    flex: 1;
-                    border-bottom: 2px dotted #cbd5e1;
-                    margin: 0 16px;
-                    height: 1px;
-                  }
-                  
-                  .content-page { 
-                    position: relative;
-                    margin: 0;
-                    padding: 20px;
-                    min-height: calc(100vh - 40px);
-                  }
-                  
-                  .cover-page { 
-                    margin: 0 !important; 
-                    padding: 0 !important; 
-                    width: 100% !important; 
-                    height: 100% !important; 
-                  }
                 }
                 
                 @media screen {
@@ -617,87 +515,18 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 </div>
               </div>
               
-              <!-- Cover Page Container -->
-              <div style="position: relative; width: 100%; height: 100vh; margin: 0; padding: 0; page-break-after: always;">
-                <div class="cover-page">
-                  <div class="cover-overlay"></div>
-                  <div class="cover-content">
-                    <div class="cover-title">Grand Slam Offer</div>
-                    <div class="cover-subtitle">The Ultimate Irresistible Offer</div>
-                    <div class="cover-description">
-                      A complete Grand Slam Offer built using Alex Hormozi's proven $100M methodology. 
-                      This offer has been designed to be so good that your customers feel stupid saying no.
-                    </div>
+              <!-- Cover Page -->
+              <div class="cover-page">
+                <div class="cover-overlay"></div>
+                <div class="cover-content">
+                  <div class="cover-title">Grand Slam Offer</div>
+                  <div class="cover-subtitle">The Ultimate Irresistible Offer</div>
+                  <div class="cover-description">
+                    A complete Grand Slam Offer built using Alex Hormozi's proven $100M methodology. 
+                    This offer has been designed to be so good that your customers feel stupid saying no.
                   </div>
+                  <div class="cover-description">Generated on ${new Date().toLocaleDateString()}</div>
                 </div>
-              </div>
-              
-              <!-- Table of Contents -->
-              <div class="table-of-contents">
-                <h2 class="toc-title">Table of Contents</h2>
-                                 <div class="toc-item">
-                   <div class="toc-number" style="background: linear-gradient(135deg, #8b5cf6, #06b6d4);">📋</div>
-                   <div class="toc-content">
-                     <div class="toc-chapter">Business Overview</div>
-                     <div class="toc-description">Your business description and context</div>
-                   </div>
-                   <div class="toc-dots"></div>
-                   <div class="toc-page">4</div>
-                 </div>
-                ${displayOffer.components
-                  .map((component, index) => {
-                    const componentIcons = [
-                      '🎯',
-                      '⚠️',
-                      '💡',
-                      '🚀',
-                      '📊',
-                      '📦',
-                      '⏰',
-                      '⚡',
-                      '⭐',
-                      '🛡️',
-                      '✨',
-                    ]
-                    const componentColors = [
-                      '#ec4899',
-                      '#f97316',
-                      '#3b82f6',
-                      '#10b981',
-                      '#f59e0b',
-                      '#8b5cf6',
-                      '#ef4444',
-                      '#0ea5e9',
-                      '#8b5cf6',
-                      '#14b8a6',
-                      '#06b6d4',
-                    ]
-                    // Calculate estimated page number based on content length
-                    let estimatedPage = 4 // Start after cover(1) + toc(2-3) + business overview(4)
-
-                    // Add pages for previous components
-                    for (let i = 0; i < index; i++) {
-                      const prevComponent = displayOffer.components[i]
-                      const itemsPerPage = 6 // Approximate items that fit per page
-                      const pagesForComponent = Math.ceil(
-                        (prevComponent.items.length + 2) / itemsPerPage
-                      ) // +2 for header space
-                      estimatedPage += pagesForComponent
-                    }
-
-                    return `
-                    <div class="toc-item ${component.componentId === 6 ? 'page-break' : ''}">
-                      <div class="toc-number" style="background: ${componentColors[component.componentId - 1]};">${componentIcons[component.componentId - 1]}</div>
-                      <div class="toc-content">
-                        <div class="toc-chapter">${component.componentId}. ${component.componentName}</div>
-                        <div class="toc-description">${component.description}</div>
-                      </div>
-                      <div class="toc-dots"></div>
-                      <div class="toc-page" id="page-ref-${component.componentId}">${estimatedPage}</div>
-                    </div>
-                  `
-                  })
-                  .join('')}
               </div>
               
               <!-- Content Page -->
@@ -706,7 +535,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 <div class="business-description">
                   <div class="business-icon">💼</div>
                   <div>
-                    <div class="business-title">Business Overview</div>
+                    <div class="business-title">Your Business Description</div>
                     <div class="business-text">${displayOffer.businessContext.businessDescription}</div>
                   </div>
                 </div>
@@ -742,7 +571,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                     ]
 
                     return `
-                    <div class="component ${index === 0 ? '' : index > 2 ? 'page-break' : ''} no-break" id="component-${component.componentId}">
+                    <div class="component ${index > 2 ? 'page-break' : ''} no-break">
                       <div class="component-header gradient-${component.componentId}">
                         <div class="component-icon">${componentIcons[component.componentId - 1]}</div>
                         <div style="flex: 1;">
@@ -804,39 +633,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
               
               <script>
                 window.onload = function() {
-                  // Update table of contents with real page numbers
-                  function updateTOCPageNumbers() {
-                    try {
-                      // Get all components
-                      ${displayOffer.components
-                        .map(
-                          component => `
-                        var component${component.componentId} = document.getElementById('component-${component.componentId}');
-                        if (component${component.componentId}) {
-                          var rect = component${component.componentId}.getBoundingClientRect();
-                          var pageHeight = window.innerHeight || document.documentElement.clientHeight;
-                          var pageNumber = Math.floor(rect.top / pageHeight) + 4; // +4 for cover, toc(2 pages), business
-                          var pageRef = document.getElementById('page-ref-${component.componentId}');
-                          if (pageRef && pageNumber > 0) {
-                            pageRef.textContent = pageNumber;
-                          }
-                        }
-                      `
-                        )
-                        .join('')}
-                    } catch (error) {
-                      console.log('Could not update page numbers:', error);
-                    }
-                  }
-                  
-                  // Update page numbers after a short delay
-                  setTimeout(updateTOCPageNumbers, 100);
-                  
                   // Hide loading overlay after 2 seconds
                   setTimeout(function() {
                     document.getElementById('loadingOverlay').style.display = 'none';
-                    // Update page numbers one more time before printing
-                    updateTOCPageNumbers();
                     // Auto-trigger print after loading
                     setTimeout(function() {
                       window.print();
@@ -881,37 +680,52 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
               </p>
             </div>
             <div className="flex-shrink-0">
-              <button
-                onClick={isPro ? handlePDFExport : () => setPurchaseModalOpen(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                  isPro
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
-                    : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-600 hover:from-slate-200 hover:to-slate-300'
-                }`}
-                disabled={isPDFGenerating}
-              >
-                {isPDFGenerating ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Download className="h-4 w-4" />
-                    </motion.div>
-                    <span>Generating PDF...</span>
-                  </>
-                ) : isPro ? (
-                  <>
-                    <Download className="h-4 w-4" />
-                    <span>Export PDF</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    <span>Export PDF</span>
-                  </>
-                )}
-              </button>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <button
+                    onClick={handlePDFExport}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                      isPro
+                        ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                        : 'bg-gradient-to-r from-slate-100 to-slate-200 text-slate-600 hover:from-slate-200 hover:to-slate-300 cursor-not-allowed'
+                    }`}
+                    disabled={!isPro || isPDFGenerating}
+                  >
+                    {isPDFGenerating ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </motion.div>
+                        <span>Generating PDF...</span>
+                      </>
+                    ) : isPro ? (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span>Export PDF</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" />
+                        <span>Export PDF</span>
+                      </>
+                    )}
+                  </button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
+                    sideOffset={5}
+                  >
+                    {isPro
+                      ? 'Export your complete offer as a PDF'
+                      : 'Upgrade to Pro to export your offer as PDF'}
+                    <Tooltip.Arrow className="fill-slate-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
             </div>
           </div>
         </motion.div>
@@ -982,7 +796,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-col gap-2">
                               {component.componentId !== 3 && (
-                                <div className="flex flex-col justify-between sm:flex-row sm:items-center gap-2 sm:gap-3 pr-10">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                   <h3 className="text-base font-semibold text-slate-800 group-hover:text-violet-700 transition-colors pr-1 break-words">
                                     {item.title}
                                   </h3>
@@ -997,9 +811,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                                               <span>{item.value}</span>
                                             </span>
                                           </Tooltip.Trigger>
-                                          <Tooltip.Portal container={document.body}>
+                                          <Tooltip.Portal>
                                             <Tooltip.Content
-                                              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95 z-50"
+                                              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
                                               sideOffset={5}
                                             >
                                               Estimated value this strategy can add to your business
@@ -1016,9 +830,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                                             <span>High Impact</span>
                                           </span>
                                         </Tooltip.Trigger>
-                                        <Tooltip.Portal container={document.body}>
+                                        <Tooltip.Portal>
                                           <Tooltip.Content
-                                            className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95 z-50"
+                                            className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
                                             sideOffset={5}
                                           >
                                             This strategy has a significant impact on business
@@ -1033,7 +847,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                               )}
                               {component.componentId === 3 ? (
                                 <div className="space-y-3">
-                                  <div className="flex flex-col justify-between sm:flex-row sm:items-start gap-2 sm:gap-3 pr-10">
+                                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
                                     <h3 className="text-base font-semibold text-slate-800 group-hover:text-violet-700 transition-colors pr-1 break-words">
                                       {item.title}
                                     </h3>
@@ -1048,9 +862,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                                                 <span>{item.value}</span>
                                               </span>
                                             </Tooltip.Trigger>
-                                            <Tooltip.Portal container={document.body}>
+                                            <Tooltip.Portal>
                                               <Tooltip.Content
-                                                className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95 z-50"
+                                                className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
                                                 sideOffset={5}
                                               >
                                                 Estimated value this strategy can add to your
@@ -1068,9 +882,9 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                                               <span>High Impact</span>
                                             </span>
                                           </Tooltip.Trigger>
-                                          <Tooltip.Portal container={document.body}>
+                                          <Tooltip.Portal>
                                             <Tooltip.Content
-                                              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95 z-50"
+                                              className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm shadow-lg animate-in fade-in-0 zoom-in-95"
                                               sideOffset={5}
                                             >
                                               This strategy has a significant impact on business
@@ -1172,7 +986,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-col gap-2">
-                                  <div className="flex flex-col justify-between sm:flex-row sm:items-center gap-2 sm:gap-3 pr-10">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                     <div className="h-4 bg-slate-300 rounded w-full sm:w-40 max-w-[200px]" />
                                     <div className="flex flex-wrap gap-1.5">
                                       <div className="h-4 bg-emerald-200 rounded w-16" />
@@ -1209,7 +1023,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                           </div>
 
                           <button
-                            onClick={() => handlePurchaseClick()}
+                            onClick={() => handlePurchaseClick(component.componentName)}
                             className={`bg-gradient-to-r ${gradient} text-white px-5 py-1.5 rounded-full font-medium text-sm hover:shadow-lg transform hover:scale-102 transition-all duration-300 flex items-center gap-2`}
                           >
                             <Crown className="h-3.5 w-3.5" />

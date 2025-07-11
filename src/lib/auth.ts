@@ -43,7 +43,10 @@ export const authService = {
       const client = await clientPromise
       const db = client.db()
 
-      const profile = await db.collection('user_profiles').findOne({ userId })
+      // Check both userId and email fields for compatibility
+      const profile = await db.collection('user_profiles').findOne({
+        $or: [{ userId }, { email: userId }],
+      })
       return profile as UserProfile | null
     } catch (error) {
       console.error('Error fetching user profile:', error)
@@ -57,16 +60,24 @@ export const authService = {
       const client = await clientPromise
       const db = client.db()
 
-      const result = await db.collection('user_profiles').updateOne(
-        { userId },
-        {
-          $set: {
-            ...updates,
-            updated_at: new Date(),
-          },
+      // First check if the user exists - check both userId and email fields
+      const existingUser = await db.collection('user_profiles').findOne({
+        $or: [{ userId }, { email: userId }],
+      })
+
+      if (!existingUser) {
+        throw new Error('User profile not found. Cannot update non-existent user.')
+      }
+
+      // Update using the same identifier that was found
+      const updateQuery = existingUser.userId ? { userId } : { email: userId }
+
+      const result = await db.collection('user_profiles').updateOne(updateQuery, {
+        $set: {
+          ...updates,
+          updated_at: new Date(),
         },
-        { upsert: true }
-      )
+      })
 
       return result.acknowledged
     } catch (error) {

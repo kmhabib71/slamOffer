@@ -180,6 +180,61 @@ export class UnifiedUserService {
   }
 
   /**
+   * Deduct credits for generation (only for free users)
+   */
+  static async deductCredits(
+    email: string,
+    amount: number = 1
+  ): Promise<{
+    success: boolean
+    creditsRemaining: number
+    subscriptionTier: string
+  }> {
+    try {
+      const client = await clientPromise
+      const db = client.db()
+
+      // Get current user
+      const user = await this.findByEmail(email)
+      if (!user) {
+        return { success: false, creditsRemaining: 0, subscriptionTier: 'free' }
+      }
+
+      // For free users, deduct credits
+      if (user.subscription_tier === 'free') {
+        const newCredits = Math.max(0, user.credits_remaining - amount)
+
+        const result = await db.collection(UNIFIED_USER_COLLECTION).updateOne(
+          { email },
+          {
+            $set: {
+              credits_remaining: newCredits,
+              updated_at: new Date(),
+              updatedAt: new Date(),
+            },
+          }
+        )
+
+        return {
+          success: result.modifiedCount > 0,
+          creditsRemaining: newCredits,
+          subscriptionTier: user.subscription_tier,
+        }
+      }
+
+      // For paid users, no credit deduction needed
+      return {
+        success: true,
+        creditsRemaining: user.credits_remaining,
+        subscriptionTier: user.subscription_tier,
+      }
+    } catch (error) {
+      console.error('Error deducting credits:', error)
+      return { success: false, creditsRemaining: 0, subscriptionTier: 'free' }
+    }
+  }
+
+  /**
    * Migrate single user from old schema to new schema
    */
   static async migrateSingleUser(email: string): Promise<boolean> {

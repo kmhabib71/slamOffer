@@ -47,7 +47,7 @@ type ClientCompleteGrandSlamOffer = Omit<CompleteGrandSlamOffer, '_id' | 'user_i
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const router = useRouter()
   const { isTestMode } = useTestMode()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -68,9 +68,6 @@ export default function DashboardPage() {
   const [selectedComponent, setSelectedComponent] = useState<string | undefined>(undefined)
   const [isPurchased, setIsPurchased] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [selectedPackage, setSelectedPackage] = useState<
-    'starter_spark' | 'growth_engine' | 'agency_arsenal'
-  >('starter_spark')
 
   useEffect(() => {
     // Check if user has admin role
@@ -216,6 +213,29 @@ export default function DashboardPage() {
                 setError(`Failed to save offer: ${saveResult.error}`)
               }
             }
+
+            // Deduct credits after successful generation and save (Test Mode)
+            try {
+              const creditResponse = await fetch('/api/user/deduct-credit', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ amount: 1 }),
+              })
+
+              const creditResult = await creditResponse.json()
+
+              if (creditResponse.ok && creditResult.success) {
+                console.log('Credits updated (Test Mode):', creditResult.message)
+                // Refresh user data to update credit count in UI
+                await refreshUser()
+              } else {
+                console.error('Failed to update credits (Test Mode):', creditResult.error)
+              }
+            } catch (creditError) {
+              console.error('Error updating credits (Test Mode):', creditError)
+            }
           } catch (saveError) {
             console.error('Unexpected error saving offer:', saveError)
             setError('An unexpected error occurred while saving your offer')
@@ -284,6 +304,29 @@ export default function DashboardPage() {
               if (saveResult.error && !saveResult.error.includes('duplicate')) {
                 setError(`Failed to save offer: ${saveResult.error}`)
               }
+            }
+
+            // Deduct credits after successful generation and save (Real API)
+            try {
+              const creditResponse = await fetch('/api/user/deduct-credit', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ amount: 1 }),
+              })
+
+              const creditResult = await creditResponse.json()
+
+              if (creditResponse.ok && creditResult.success) {
+                console.log('Credits updated (Real API):', creditResult.message)
+                // Refresh user data to update credit count in UI
+                await refreshUser()
+              } else {
+                console.error('Failed to update credits (Real API):', creditResult.error)
+              }
+            } catch (creditError) {
+              console.error('Error updating credits (Real API):', creditError)
             }
           } catch (saveError) {
             console.error('Unexpected error saving offer:', saveError)
@@ -569,7 +612,6 @@ export default function DashboardPage() {
             isOpen={showUpgradeModal}
             onClose={() => setShowUpgradeModal(false)}
             offerTitle="Choose Your Package"
-            packageType={selectedPackage}
             onPurchaseComplete={handlePackagePurchase}
           />
         )}
