@@ -76,16 +76,19 @@ export async function GET() {
       },
     })
 
+    // Since profile IS the user data (unified format), use profile fields
+    const profile = user.profile || user
+    
     const usageStats = {
-      totalOffers,
+      totalOffers: profile.total_offers_generated || totalOffers,
       thisMonth,
-      creditsUsed: user.profile?.credits_used || 0,
-      creditsRemaining: user.profile?.credits_remaining || 3,
-      subscriptionTier: user.profile?.subscription_tier || 'free',
-      memberSince: (user as any).createdAt || new Date().toISOString(),
+      creditsUsed: profile.credits_used || 0,
+      creditsRemaining: profile.credits_remaining || 3,
+      subscriptionTier: profile.subscription_tier || 'free',
+      memberSince: profile.createdAt || profile.created_at || new Date().toISOString(),
       purchasedOffers,
-      dailyGenerationCount,
-      lastGenerationDate: latestOffer?.created_at || null,
+      dailyGenerationCount: profile.generations_today || dailyGenerationCount,
+      lastGenerationDate: profile.last_generation_date || latestOffer?.created_at || null,
     }
 
     // Return in the format expected by auth provider

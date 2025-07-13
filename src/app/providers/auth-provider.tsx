@@ -47,10 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch(`/api/user/profile?t=${Date.now()}&r=${Math.random()}`, {
         method: 'GET',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       })
 

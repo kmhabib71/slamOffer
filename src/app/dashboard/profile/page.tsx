@@ -22,7 +22,7 @@ import {
 import { useState, useEffect } from 'react'
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const [apiUsage, setApiUsage] = useState({
     totalOffers: 0,
     thisMonth: 0,
@@ -37,43 +37,69 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    // Fetch API usage data
-    const fetchApiUsage = async () => {
-      try {
-        setProfileLoading(true)
-        setError('')
-        const response = await fetch('/api/user/profile')
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+  // Fetch API usage data function
+  const fetchApiUsage = async () => {
+    try {
+      setProfileLoading(true)
+      setError('')
+      // Add cache-busting parameter to prevent caching
+      const response = await fetch(`/api/user/profile?t=${Date.now()}&r=${Math.random()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         }
+      })
 
-        const data = await response.json()
-
-        setApiUsage({
-          totalOffers: data.totalOffers || 0,
-          thisMonth: data.thisMonth || 0,
-          creditsUsed: data.creditsUsed || 0,
-          creditsRemaining: data.creditsRemaining || user?.profile?.credits_remaining || 3,
-          subscriptionTier: data.subscriptionTier || 'free',
-          memberSince: data.memberSince || new Date().toISOString(),
-          purchasedOffers: data.purchasedOffers || 0,
-          dailyGenerationCount: data.dailyGenerationCount || 0,
-          lastGenerationDate: data.lastGenerationDate ? new Date(data.lastGenerationDate) : null,
-        })
-      } catch (error) {
-        console.error('Error fetching API usage:', error)
-        setError('Failed to load profile data')
-      } finally {
-        setProfileLoading(false)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-    }
 
+      const data = await response.json()
+      
+      // Debug: Log the actual API response
+      console.log('Profile API Response:', data)
+
+      // Handle the API response structure properly
+      const stats = data.stats || {}
+      
+      setApiUsage({
+        totalOffers: stats.totalOffers || 0,
+        thisMonth: stats.thisMonth || 0,
+        creditsUsed: stats.creditsUsed || 0,
+        creditsRemaining: stats.creditsRemaining || user?.profile?.credits_remaining || 3,
+        subscriptionTier: stats.subscriptionTier || 'free',
+        memberSince: stats.memberSince || new Date().toISOString(),
+        purchasedOffers: stats.purchasedOffers || 0,
+        dailyGenerationCount: stats.dailyGenerationCount || 0,
+        lastGenerationDate: stats.lastGenerationDate ? new Date(stats.lastGenerationDate) : null,
+      })
+    } catch (error) {
+      console.error('Error fetching API usage:', error)
+      setError('Failed to load profile data')
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (user) {
       fetchApiUsage()
     }
   }, [user])
+
+  // Add a refresh function for manual refresh
+  const refreshStats = async () => {
+    if (user) {
+      // Refresh both user data and stats
+      await Promise.all([
+        refreshUser(),
+        fetchApiUsage()
+      ])
+    }
+  }
 
   if (authLoading || profileLoading) {
     return (
@@ -172,6 +198,15 @@ export default function ProfilePage() {
                 <p className="text-red-800 text-sm">{error}</p>
               </div>
             )}
+            <div className="mt-4">
+              <button
+                onClick={refreshStats}
+                className="px-4 py-2 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+                disabled={profileLoading}
+              >
+                {profileLoading ? 'Refreshing...' : 'Refresh Stats'}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

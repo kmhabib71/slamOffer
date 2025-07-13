@@ -115,3 +115,19 @@ test gso too with the prompt below, the prompt is short in real it will be longe
 ### 5. 💬 **Multi-Tenant Video Chat PaaS for Speed Dating & Coaching**
 
 > I want to launch a multi-tenant video chat SaaS where people can create white-labeled apps for speed dating, 1:1 coaching, or live therapist sessions. Most creators or communities want to monetize real-time interaction but don’t know how to build WebRTC tools. I’ll charge \$99–\$299/month per tenant and take 10% of client-side revenue using Stripe Connect.
+
+find and kill 3000 in windows:
+
+PS D:\Projects\Grand-offer\slamOffer> netstat -aon | findstr :3000
+TCP [::1]:3000 [::]:0 LISTENING 8884
+TCP [::1]:3000 [::1]:63971 ESTABLISHED 8884
+TCP [::1]:3000 [::1]:64044 TIME_WAIT 0
+TCP [::1]:3000 [::1]:64052 TIME_WAIT 0
+TCP [::1]:3000 [::1]:64066 TIME_WAIT 0
+TCP [::1]:63971 [::1]:3000 ESTABLISHED 18412
+PS D:\Projects\Grand-offer\slamOffer> Stop-Process -Id 8884
+
+Find and kill 3000 in ubuntu
+ss -tuln | grep 3000
+sudo fuser -k 3000/tcp
+ss -tuln | grep 3000

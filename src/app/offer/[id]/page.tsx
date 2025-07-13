@@ -375,13 +375,24 @@ export default function OfferDetailPage() {
                   </button>
                 )}
 
-                <Link
-                  href={`/offer/${offer._id}/edit`}
-                  className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  <span>Edit</span>
-                </Link>
+{isPurchased ? (
+                  <Link
+                    href={`/offer/${offer._id}/edit`}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>Edit</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setShowPurchaseModal(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-slate-100 text-slate-500 rounded-lg text-sm font-medium cursor-not-allowed opacity-75"
+                    title="Purchase the complete offer to edit"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>Edit</span>
+                  </button>
+                )}
               </div>
             )}
           </nav>

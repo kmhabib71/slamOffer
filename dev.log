@@ -1,0 +1,138 @@
+
+> grand-slam-generator@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.4 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://10.255.255.254:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ○ Compiling middleware ...
+ ✓ Compiled middleware in 1529ms
+ ✓ Ready in 14.8s
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbo
+
+ ○ Compiling /api/auth/[...nextauth] ...
+✅ MongoDB connected successfully
+ GET /api/auth/session 200 in 35220ms
+ GET /api/auth/session 200 in 761ms
+ GET /dashboard/profile 200 in 34397ms
+ ✓ Compiled /api/auth/[...nextauth] in 39.6s
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1940ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 2828ms
+ GET /api/auth/session 200 in 706ms
+ GET /api/user/profile 200 in 1529ms
+ GET /api/auth/session 200 in 1687ms
+ ○ Compiling /api/user/usage-check ...
+ GET /api/user/profile 200 in 1937ms
+ GET /api/user/profile 200 in 3824ms
+ ✓ Compiled /api/user/usage-check in 6.4s
+ GET /api/user/usage-check 200 in 7157ms
+ GET /api/auth/session 200 in 640ms
+ GET /api/auth/session 200 in 1016ms
+ GET /api/user/profile 200 in 1220ms
+ GET /api/user/profile 200 in 1113ms
+ GET /api/user/usage-check 200 in 1083ms
+ GET /api/user/profile 200 in 806ms
+ GET /api/auth/session 200 in 779ms
+ GET /api/auth/session 200 in 753ms
+ GET /api/user/profile 200 in 1081ms
+ GET /api/user/profile 200 in 788ms
+ GET /api/user/usage-check 200 in 1044ms
+ GET /api/user/profile 200 in 1225ms
+ GET /dashboard/profile 200 in 1176ms
+ GET /api/auth/session 200 in 1711ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 1947ms
+ GET /api/auth/session 200 in 1070ms
+ GET /api/user/profile?t=1752401120428&r=0.17018370691135176 200 in 1352ms
+ GET /api/user/profile?t=1752401122088&r=0.9360950738281679 200 in 1112ms
+ GET /api/user/profile 200 in 1231ms
+ GET /api/user/usage-check 200 in 689ms
+ GET /api/auth/session 200 in 698ms
+ GET /api/auth/session 200 in 682ms
+ GET /api/user/profile?t=1752401153077&r=0.8198206526820081 200 in 1029ms
+ GET /api/user/profile 200 in 956ms
+ GET /api/user/profile?t=1752401154292&r=0.38019601961548843 200 in 751ms
+ GET /api/user/usage-check 200 in 742ms
+ GET /api/auth/session 200 in 455ms
+ GET /api/auth/session 200 in 741ms
+ GET /api/user/profile?t=1752401486458&r=0.10069914595159157 200 in 1201ms
+ GET /api/user/profile 200 in 1175ms
+ GET /api/user/profile?t=1752401487888&r=0.8303502406961696 200 in 969ms
+ GET /api/user/usage-check 200 in 996ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 17.9s
+ GET /dashboard 200 in 18139ms
+ GET /previous-offers 200 in 17792ms
+ ○ Compiling /api/offers ...
+ ✓ Compiled /api/offers in 2.1s
+ GET /api/offers 200 in 2646ms
+ ○ Compiling /api/offers/[id]/purchased ...
+ GET /api/offers 200 in 973ms
+ ✓ Compiled /api/offers/[id]/purchased in 1836ms
+ GET /api/offers/687377184fc7a88850e9ab7a/purchased 200 in 8031ms
+ GET /api/offers/687377184fc7a88850e9ab7a/purchased 200 in 481ms
+ GET /api/auth/session 200 in 675ms
+ GET /api/auth/session 200 in 954ms
+ GET /api/user/profile?t=1752401530832&r=0.9723159325065679 200 in 1271ms
+ GET /api/auth/session 200 in 1108ms
+ GET /api/user/profile 200 in 1411ms
+ GET /api/auth/session 200 in 1137ms
+ GET /api/user/profile?t=1752401533254&r=0.7462447376193785 200 in 1510ms
+ GET /api/user/usage-check 200 in 1485ms
+ GET /api/user/profile 200 in 1033ms
+ GET /api/user/usage-check 200 in 829ms
+ GET /api/auth/session 200 in 539ms
+ GET /api/auth/session 200 in 647ms
+ GET /api/user/profile?t=1752401545377&r=0.3910762239209392 200 in 1014ms
+ GET /api/user/profile 200 in 889ms
+ ○ Compiling /offer/[id] ...
+ GET /api/user/usage-check 200 in 1072ms
+ ✓ Compiled /offer/[id] in 5.7s
+ GET /offer/687377184fc7a88850e9ab7a 200 in 10106ms
+ ○ Compiling /api/offers/[id] ...
+ GET /api/auth/session 200 in 954ms
+ GET /api/auth/session 200 in 1018ms
+ GET /api/user/profile?t=1752401559588&r=0.33795974298853526 200 in 1445ms
+ GET /api/auth/session 200 in 1258ms
+ GET /api/user/profile 200 in 1498ms
+ ✓ Compiled /api/offers/[id] in 4.3s
+ GET /api/user/profile?t=1752401562187&r=0.6454986921371247 200 in 1634ms
+ GET /api/user/usage-check 200 in 1447ms
+ GET /api/offers/687377184fc7a88850e9ab7a 200 in 11832ms
+ GET /api/offers/687377184fc7a88850e9ab7a 200 in 1311ms
+ GET /api/user/usage-check 200 in 1239ms
+ GET /api/user/usage-check 200 in 1510ms
+ ○ Compiling /offer/[id]/edit ...
+ ✓ Compiled /offer/[id]/edit in 10.5s
+ GET /api/auth/session 200 in 2210ms
+ GET /api/user/profile?t=1752401591479&r=0.33176149224189555 200 in 1142ms
+ GET /api/auth/session 200 in 713ms
+ GET /api/auth/session 200 in 2485ms
+ GET /offer/687377184fc7a88850e9ab7a/edit 200 in 24576ms
+ GET /api/offers/687377184fc7a88850e9ab7a 200 in 4010ms
+ GET /api/user/profile 200 in 5811ms
+ GET /api/auth/session 200 in 3577ms
+ GET /api/user/profile?t=1752401596684&r=0.7178212957837141 200 in 4369ms
+ GET /api/offers/687377184fc7a88850e9ab7a 200 in 2385ms
+ GET /api/user/profile?t=1752401601570&r=0.978232617812757 200 in 2740ms
+ GET /api/user/usage-check 200 in 2850ms
+ GET /api/auth/session 200 in 2862ms
+ GET /api/auth/session 200 in 1580ms
+ GET /api/user/profile 200 in 1964ms
+ GET /api/auth/session 200 in 1802ms
+ GET /api/user/profile?t=1752401606596&r=0.6461479326639944 200 in 2139ms
+ GET /api/user/usage-check 200 in 2487ms
+ GET /api/auth/session 200 in 1377ms
+ GET /api/user/profile?t=1752401608772&r=0.8806849661601255 200 in 1719ms
+ GET /api/auth/session 200 in 1466ms
+ GET /api/user/profile 200 in 4071ms
+ GET /api/auth/session 200 in 3234ms
+ GET /api/user/profile 200 in 2106ms
+ GET /api/user/usage-check 200 in 2133ms
+ GET /api/user/profile?t=1752401613501&r=0.3203779561900615 200 in 1695ms
+ GET /api/user/usage-check 200 in 1046ms
