@@ -259,7 +259,7 @@ export default function DashboardPage() {
           generateComplete: user?.profile?.subscription_tier !== 'free',
         }
 
-        const response = await fetch('/api/generate-complete-offer', {
+        const response = await fetch('/api/purchase-offer', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

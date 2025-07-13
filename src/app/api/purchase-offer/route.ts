@@ -36,17 +36,20 @@ export async function POST(request: Request) {
       offerId,
       businessContext,
       generateComplete = true,
-      userTier = 'pro',
+      userTier,
       componentName,
+      isRegeneration = false,
     } = body
 
     // Debug logging
-    console.log('Purchase request body:', {
+    console.log('Generation request:', {
+      userId,
       offerId,
       businessContext: businessContext ? 'present' : 'missing',
       generateComplete,
       userTier,
       componentName,
+      isRegeneration,
     })
 
     if (!offerId || !businessContext) {
@@ -61,7 +64,6 @@ export async function POST(request: Request) {
     let userProfile = await authService.getUserProfile(userId)
 
     if (!userProfile) {
-      // Create user profile if it doesn't exist
       try {
         userProfile = await authService.createUserProfile(userId, session.user.email!)
       } catch (error) {
@@ -69,34 +71,130 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error: 'Failed to create user profile',
-            details: error,
+            details: error instanceof Error ? error.message : 'Unknown error',
           },
           { status: 500 }
         )
       }
     }
 
-    // Check if user has already purchased this offer
-    const isPurchased = await dbHelpers.isPurchasedByUser(userId, offerId)
+    // Check if user can generate (handles both new generations and regenerations)
+    const canGenerate = await authService.canUserGenerate(userId, isRegeneration)
 
-    if (isPurchased) {
-      return NextResponse.json({ error: 'Offer already purchased' }, { status: 400 })
+    if (!canGenerate.canGenerate) {
+      return NextResponse.json(
+        {
+          error: canGenerate.reason || 'Cannot generate offer',
+          details: {
+            remainingCredits: canGenerate.remainingCredits,
+            dailyRemaining: canGenerate.dailyRemaining,
+            regenerationsRemaining: canGenerate.regenerationsRemaining,
+          },
+        },
+        { status: 403 }
+      )
     }
 
-    // Note: We no longer upgrade users to global pro status
-    // Each offer purchase is tracked individually
+    // For regenerations, use the original business context
+    let finalBusinessContext = businessContext
+    if (isRegeneration && userProfile.subscription_tier === 'starter_spark') {
+      const originalContext = userProfile.package_details?.original_business_context
+      if (originalContext) {
+        finalBusinessContext = originalContext
+        console.log('Using original business context for regeneration')
+      } else {
+        // Store the current context as original for future regenerations
+        await authService.storeOriginalBusinessContext(userId, businessContext)
+        console.log('Stored original business context for future regenerations')
+      }
+    }
 
-    // Generate the complete offer (now as pro user)
+    // Determine the actual user tier for generation
+    let effectiveTier = userProfile.subscription_tier
+
+    // Check if this is a purchased offer (individual purchase)
+    if (!isRegeneration) {
+      const isPurchased = await dbHelpers.isPurchasedByUser(userId, offerId)
+      if (isPurchased) {
+        return NextResponse.json({ error: 'Offer already purchased' }, { status: 400 })
+      }
+    }
+
+    // Handle different generation types
+    let shouldDeductCredits = true
+    let creditsToDeduct = 1
+    let generationTier: 'free' | 'pro' = 'free'
+
+    if (isRegeneration && userProfile.subscription_tier === 'starter_spark') {
+      // Regenerations for Starter Spark don't consume credits
+      shouldDeductCredits = false
+      creditsToDeduct = 0
+      generationTier = 'pro' // Regenerations get full content
+    } else if (userProfile.subscription_tier === 'free') {
+      // Free users get basic offers
+      generationTier = 'free'
+      creditsToDeduct = 1
+    } else {
+      // Paid users get full offers
+      generationTier = 'pro'
+      creditsToDeduct = 1
+    }
+
+    // Deduct credits BEFORE generation to prevent race conditions
+    if (shouldDeductCredits) {
+      try {
+        const deductionSuccess = await authService.deductCredits(
+          userId,
+          creditsToDeduct,
+          isRegeneration
+        )
+        if (!deductionSuccess) {
+          return NextResponse.json({ error: 'Failed to deduct credits' }, { status: 500 })
+        }
+        console.log('Successfully deducted credits:', creditsToDeduct)
+      } catch (error) {
+        console.error('Error deducting credits:', error)
+        return NextResponse.json({ error: 'Failed to process credits' }, { status: 500 })
+      }
+    } else {
+      // For regenerations, still track the generation
+      try {
+        await authService.deductCredits(userId, 0, true)
+        console.log('Tracked regeneration without credit deduction')
+      } catch (error) {
+        console.error('Error tracking regeneration:', error)
+        // Continue anyway since this is just tracking
+      }
+    }
+
+    // Generate the offer
     let completeOffer
     try {
+      console.log('Starting AI generation with tier:', generationTier)
+
       completeOffer = await generateCompleteGrandSlamOffer({
-        businessContext,
-        userTier: 'pro', // Always use pro tier for purchased offers
-        generateComplete: true, // Always generate complete content for purchases
+        businessContext: finalBusinessContext,
+        userTier: generationTier,
+        generateComplete: generationTier !== 'free', // Free users get limited content
         componentName,
       })
+
+      console.log('AI generation completed successfully')
     } catch (error) {
       console.error('Error generating offer:', error)
+
+      // If generation fails, refund credits
+      if (shouldDeductCredits) {
+        try {
+          await authService.updateUserProfile(userId, {
+            credits_remaining: userProfile.credits_remaining, // Restore original credits
+          })
+          console.log('Refunded credits due to generation failure')
+        } catch (refundError) {
+          console.error('Error refunding credits:', refundError)
+        }
+      }
+
       return NextResponse.json(
         {
           error: 'Failed to generate offer',
@@ -106,30 +204,57 @@ export async function POST(request: Request) {
       )
     }
 
-    // Save the purchase
+    // Save the generation result
     try {
-      await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+      if (isRegeneration) {
+        // For regenerations, update the existing offer
+        await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+        console.log('Saved regenerated offer')
+      } else {
+        // For new generations, save as new offer
+        await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+        console.log('Saved new generated offer')
+      }
     } catch (error) {
-      console.error('Error saving purchase:', error)
+      console.error('Error saving offer:', error)
       return NextResponse.json(
         {
-          error: 'Failed to save purchase',
-          details: error,
+          error: 'Failed to save offer',
+          details: error instanceof Error ? error.message : 'Unknown error',
         },
         { status: 500 }
       )
     }
 
+    // Get updated user profile to return current status
+    const updatedProfile = await authService.getUserProfile(userId)
+
+    // Get regeneration status for response
+    const regenerationStatus = await authService.getRegenerationStatus(userId)
+
     return NextResponse.json({
       success: true,
       data: completeOffer,
+      generation: {
+        type: isRegeneration ? 'regeneration' : 'new',
+        tier: generationTier,
+        creditsDeducted: creditsToDeduct,
+        remainingCredits: updatedProfile?.credits_remaining || 0,
+        regenerationsRemaining: regenerationStatus.remaining || 0,
+      },
+      profile: {
+        subscription_tier: updatedProfile?.subscription_tier,
+        credits_remaining: updatedProfile?.credits_remaining,
+        can_regenerate: regenerationStatus.available,
+        regenerations_remaining: regenerationStatus.remaining,
+      },
     })
   } catch (error) {
-    console.error('Error processing purchase:', error)
+    console.error('Error processing generation:', error)
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Failed to process purchase',
-        details: error,
+        error: error instanceof Error ? error.message : 'Failed to process generation',
+        details: error instanceof Error ? error.stack : 'Unknown error',
       },
       { status: 500 }
     )

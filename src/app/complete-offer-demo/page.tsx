@@ -17,20 +17,19 @@ export default function CompleteOfferDemoPage() {
     setError(null)
 
     try {
-      const response = await fetch('/api/generate-complete-offer', {
+      const response = await fetch('/api/purchase-offer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          offerId: 'demo-offer-' + Date.now(), // Generate a unique demo offer ID
           businessContext: {
-            businessType: 'Online Fitness Coaching',
-            targetMarket: 'Busy professionals aged 30-45 who want to lose weight',
-            mainProblem: "No time for gym, complicated diet plans, lack of accountability",
-            revenueGoal: '$10,000/month',
+            businessDescription:
+              'Online Fitness Coaching for busy professionals aged 30-45 who want to lose weight but have no time for gym, complicated diet plans, and lack accountability. Revenue goal: $10,000/month.',
           },
-          userTier: 'free', // Show free tier experience
-          generateComplete: false, // Free users get preview
+          userTier: 'pro', // Use pro tier for demo
+          generateComplete: true, // Generate complete demo offer
         }),
       })
 
@@ -42,7 +41,7 @@ export default function CompleteOfferDemoPage() {
         throw new Error(data.error || 'Failed to generate offer')
       }
     } catch (err) {
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Failed to generate offer')
     } finally {
       setLoading(false)
     }
@@ -59,9 +58,7 @@ export default function CompleteOfferDemoPage() {
             </div>
             <span className="text-xl font-bold text-slate-800">GrandSlamGenerator.ai</span>
           </div>
-          <div className="text-sm text-slate-600 font-semibold">
-            Complete Offer Demo
-          </div>
+          <div className="text-sm text-slate-600 font-semibold">Complete Offer Demo</div>
         </nav>
       </header>
 
@@ -74,7 +71,7 @@ export default function CompleteOfferDemoPage() {
                 <Sparkles className="h-10 w-10 text-white" />
               </div>
               <h1 className="text-4xl lg:text-5xl font-black text-slate-800 mb-4">
-                See Your 
+                See Your
                 <span className="bg-gradient-to-r from-violet-600 via-sky-500 to-yellow-500 bg-clip-text text-transparent">
                   Grand Slam Offer
                 </span>
@@ -82,9 +79,9 @@ export default function CompleteOfferDemoPage() {
                 Come to Life
               </h1>
               <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-                Watch AI transform a simple fitness coaching idea into a comprehensive 
-                <span className="text-sky-600 font-bold">$100M-style offer</span> using 
-                Alex Hormozi's proven methodology.
+                Watch AI transform a simple fitness coaching idea into a comprehensive
+                <span className="text-sky-600 font-bold">$100M-style offer</span> using Alex
+                Hormozi's proven methodology.
               </p>
             </div>
 
@@ -137,7 +134,7 @@ export default function CompleteOfferDemoPage() {
                     'Generating dream outcomes and problem identification...',
                     'Creating solutions and delivery vehicles...',
                     'Building value stack and offer optimization...',
-                    'Finalizing premium preview with conversion elements...'
+                    'Finalizing premium preview with conversion elements...',
                   ].map((step, index) => (
                     <div key={index} className="flex items-center space-x-3 text-left">
                       <div className="w-2 h-2 bg-gradient-to-r from-violet-500 to-sky-500 rounded-full animate-pulse"></div>
@@ -169,4 +166,3 @@ export default function CompleteOfferDemoPage() {
     </div>
   )
 }
-

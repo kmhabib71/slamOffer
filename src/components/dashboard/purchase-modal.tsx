@@ -1,8 +1,20 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, Shield, Loader2, Crown, Zap, Star, Rocket } from 'lucide-react'
+import {
+  X,
+  CheckCircle,
+  Shield,
+  Loader2,
+  Crown,
+  Zap,
+  Star,
+  Rocket,
+  AlertTriangle,
+  Info,
+  RefreshCw,
+} from 'lucide-react'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 
@@ -13,22 +25,36 @@ interface PurchaseModalProps {
   onPurchaseComplete: () => Promise<void>
 }
 
+interface UserUsageData {
+  subscription_tier: string
+  credits_remaining: number
+  can_generate: boolean
+  daily_remaining?: number
+}
+
 const PLANS = [
   {
     id: 'starter_spark',
     name: 'Starter Spark',
     price: 9,
     credits: 1,
+    regenerations: 2,
     description: 'Perfect for single offer creation',
     icon: Zap,
     gradient: 'from-blue-500 to-purple-600',
     popular: true,
+    bestFor: 'Solo entrepreneurs',
     features: [
       '1 complete offer generation',
       '2 offer regenerations included',
-      'Full offer components',
+      'Same prompt, different results',
+      'Full offer components (47+ strategies)',
       'Premium PDF export',
       'Email support',
+    ],
+    limitations: [
+      'No editing of original prompt for regenerations',
+      'Limited to 1 new offer creation',
     ],
   },
   {
@@ -36,34 +62,42 @@ const PLANS = [
     name: 'Growth Engine',
     price: 47,
     credits: 10,
+    regenerations: 0,
     description: 'For growing businesses',
     icon: Star,
     gradient: 'from-purple-500 to-pink-600',
     popular: false,
+    bestFor: 'Small businesses',
     features: [
       '10 complete offer generations',
       'All premium features',
       'Advanced offer components',
       'Premium PDF export',
       'Priority support',
+      'Multiple business contexts',
     ],
+    limitations: [],
   },
   {
     id: 'agency_arsenal',
     name: 'Agency Arsenal',
     price: 99,
     credits: 30,
+    regenerations: 0,
     description: 'For agencies and teams',
     icon: Rocket,
     gradient: 'from-pink-500 to-red-600',
     popular: false,
+    bestFor: 'Agencies & teams',
     features: [
       '30 complete offer generations',
       'All premium features',
       'Advanced offer components',
       'Premium PDF export',
       'Priority support',
+      'Team collaboration features',
     ],
+    limitations: [],
   },
 ]
 
@@ -77,15 +111,43 @@ export function PurchaseModal({
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [usageData, setUsageData] = useState<UserUsageData | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const currentPlan = PLANS.find(plan => plan.id === selectedPlan) || PLANS[0]
+
+  // Fetch current user usage data
+  useEffect(() => {
+    const fetchUsageData = async () => {
+      if (!isOpen) return
+
+      try {
+        const response = await fetch('/api/user/usage-check')
+        if (response.ok) {
+          const data = await response.json()
+          setUsageData({
+            subscription_tier: data.profile.subscription_tier,
+            credits_remaining: data.profile.credits_remaining,
+            can_generate: data.generation.can_generate,
+            daily_remaining: data.generation.daily_remaining,
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching usage data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsageData()
+  }, [isOpen])
 
   const handlePurchase = async () => {
     setIsProcessing(true)
     setPaymentError(null)
 
     try {
-      // Demo purchase - in real app this would integrate with payment processor
+      // Call the enhanced purchase-package API
       const response = await fetch('/api/purchase-package', {
         method: 'POST',
         headers: {
@@ -104,6 +166,9 @@ export function PurchaseModal({
         const errorData = await response.json()
         throw new Error(errorData.error || 'Payment failed')
       }
+
+      const data = await response.json()
+      console.log('Purchase successful:', data)
 
       setPaymentSuccess(true)
 
@@ -130,12 +195,17 @@ export function PurchaseModal({
     setPaymentSuccess(false)
     setPaymentError(null)
     setSelectedPlan('starter_spark')
+    setUsageData(null)
+    setLoading(true)
   }
 
   const handleClose = () => {
     resetModal()
     onClose()
   }
+
+  const isCurrentPlan = usageData?.subscription_tier === selectedPlan
+  const isUpgrade = usageData?.subscription_tier === 'free' && selectedPlan !== 'free'
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -163,7 +233,7 @@ export function PurchaseModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
+              <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
                 {/* Header */}
                 <div className="relative bg-gradient-to-r from-violet-600 to-purple-700 px-8 py-6 text-white">
                   <button
@@ -176,9 +246,13 @@ export function PurchaseModal({
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-full mb-4">
                       <Crown className="h-8 w-8" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Unlock Your Complete Offer</h2>
+                    <h2 className="text-2xl font-bold mb-2">
+                      {isUpgrade ? 'Upgrade Your Plan' : 'Unlock Your Complete Offer'}
+                    </h2>
                     <p className="text-white/90">
-                      Get access to all strategies and premium features
+                      {isUpgrade
+                        ? 'Choose the perfect plan for your business needs'
+                        : 'Get access to all strategies and premium features'}
                     </p>
                   </div>
                 </div>
@@ -197,7 +271,11 @@ export function PurchaseModal({
                       <h3 className="text-2xl font-bold text-slate-800 mb-2">
                         Payment Successful!
                       </h3>
-                      <p className="text-slate-600 mb-4">Generating your complete offer...</p>
+                      <p className="text-slate-600 mb-4">
+                        {isUpgrade
+                          ? 'Your plan has been upgraded!'
+                          : 'Generating your complete offer...'}
+                      </p>
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-violet-600" />
                         <span className="text-sm text-slate-500">This may take a moment...</span>
@@ -205,22 +283,54 @@ export function PurchaseModal({
                     </motion.div>
                   ) : (
                     <>
+                      {/* Current Status */}
+                      {usageData && !loading && (
+                        <div className="mb-6 p-4 bg-slate-50 rounded-lg border">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                <Info className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-800">
+                                  Current Plan:{' '}
+                                  {usageData.subscription_tier.charAt(0).toUpperCase() +
+                                    usageData.subscription_tier.slice(1).replace('_', ' ')}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  {usageData.credits_remaining} credits remaining
+                                  {usageData.daily_remaining !== undefined &&
+                                    ` • ${usageData.daily_remaining} daily remaining`}
+                                </p>
+                              </div>
+                            </div>
+                            {!usageData.can_generate && (
+                              <div className="flex items-center space-x-2 text-amber-600">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-sm font-medium">Upgrade needed</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Plan Selection */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         {PLANS.map(plan => {
                           const Icon = plan.icon
                           const isSelected = selectedPlan === plan.id
+                          const isCurrent = usageData?.subscription_tier === plan.id
 
                           return (
                             <motion.div
                               key={plan.id}
                               whileHover={{ scale: 1.02 }}
-                              className={`relative cursor-pointer rounded-xl border-2 p-6 transition-all ${
+                              className={`relative cursor-pointer rounded-xl border-2 transition-all ${
                                 isSelected
                                   ? 'border-violet-500 bg-violet-50 shadow-lg'
                                   : 'border-slate-200 hover:border-violet-300 hover:shadow-md'
-                              }`}
-                              onClick={() => setSelectedPlan(plan.id)}
+                              } ${isCurrent ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              onClick={() => !isCurrent && setSelectedPlan(plan.id)}
                             >
                               {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -230,97 +340,155 @@ export function PurchaseModal({
                                 </div>
                               )}
 
-                              <div className="text-center">
-                                <div
-                                  className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r ${plan.gradient} mb-4`}
-                                >
-                                  <Icon className="h-6 w-6 text-white" />
-                                </div>
-
-                                <h3 className="text-lg font-bold text-slate-800 mb-2">
-                                  {plan.name}
-                                </h3>
-                                <p className="text-sm text-slate-600 mb-4">{plan.description}</p>
-
-                                <div className="mb-4">
-                                  <span className="text-3xl font-bold text-slate-800">
-                                    ${plan.price}
+                              {isCurrent && (
+                                <div className="absolute -top-3 right-4">
+                                  <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                                    Current Plan
                                   </span>
-                                  <span className="text-sm text-slate-500 ml-1">one-time</span>
+                                </div>
+                              )}
+
+                              <div className="p-6">
+                                <div className="text-center mb-4">
+                                  <div
+                                    className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r ${plan.gradient} mb-4`}
+                                  >
+                                    <Icon className="h-6 w-6 text-white" />
+                                  </div>
+
+                                  <h3 className="text-lg font-bold text-slate-800 mb-2">
+                                    {plan.name}
+                                  </h3>
+                                  <p className="text-sm text-slate-600 mb-4">{plan.description}</p>
+                                  <p className="text-xs text-slate-500 mb-4">
+                                    Best for: {plan.bestFor}
+                                  </p>
+
+                                  <div className="mb-4">
+                                    <span className="text-3xl font-bold text-slate-800">
+                                      ${plan.price}
+                                    </span>
+                                    <span className="text-sm text-slate-500 ml-1">one-time</span>
+                                  </div>
+
+                                  <div className="flex items-center justify-center space-x-4 mb-4">
+                                    <div className="text-center">
+                                      <div className="font-bold text-violet-600">
+                                        {plan.credits}
+                                      </div>
+                                      <div className="text-xs text-slate-500">Credits</div>
+                                    </div>
+                                    {plan.regenerations > 0 && (
+                                      <div className="text-center">
+                                        <div className="font-bold text-blue-600">
+                                          {plan.regenerations}
+                                        </div>
+                                        <div className="text-xs text-slate-500">Regenerations</div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
 
-                                <div className="text-xs text-violet-600 font-semibold mb-4">
-                                  ${(plan.price / plan.credits).toFixed(2)} per offer
-                                </div>
-
-                                <ul className="space-y-2 text-sm text-slate-600">
+                                <ul className="space-y-2 mb-4">
                                   {plan.features.map((feature, index) => (
-                                    <li key={index} className="flex items-start">
-                                      <CheckCircle className="w-4 h-4 text-violet-500 mt-0.5 mr-2 flex-shrink-0" />
-                                      <span>{feature}</span>
+                                    <li key={index} className="flex items-start space-x-2">
+                                      <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                      <span className="text-sm text-slate-700">{feature}</span>
                                     </li>
                                   ))}
                                 </ul>
-                              </div>
 
-                              {isSelected && (
-                                <div className="absolute inset-0 rounded-xl border-2 border-violet-500 bg-violet-500/5 pointer-events-none" />
-                              )}
+                                {plan.limitations.length > 0 && (
+                                  <div className="border-t pt-4">
+                                    <p className="text-xs font-medium text-slate-600 mb-2">
+                                      Limitations:
+                                    </p>
+                                    <ul className="space-y-1">
+                                      {plan.limitations.map((limitation, index) => (
+                                        <li key={index} className="flex items-start space-x-2">
+                                          <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                                          <span className="text-xs text-slate-600">
+                                            {limitation}
+                                          </span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
                             </motion.div>
                           )
                         })}
                       </div>
 
-                      {/* Demo Notice */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <div className="flex items-center gap-3">
-                          <Shield className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-medium text-blue-800">Demo Mode</p>
-                            <p className="text-xs text-blue-600">
-                              This is a demo purchase. In the real app, you'll be redirected to a
-                              secure checkout page.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Error Message */}
+                      {/* Payment Error */}
                       {paymentError && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                          <p className="text-sm text-red-800">{paymentError}</p>
-                        </div>
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <span className="text-red-800 font-medium">{paymentError}</span>
+                          </div>
+                        </motion.div>
                       )}
 
                       {/* Purchase Button */}
-                      <div className="text-center">
-                        <button
+                      <div className="flex justify-center">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={handlePurchase}
-                          disabled={isProcessing}
-                          className={`inline-flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-lg transition-all ${
-                            isProcessing
-                              ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                              : `bg-gradient-to-r ${currentPlan.gradient} text-white hover:shadow-lg hover:scale-105`
+                          disabled={isProcessing || isCurrentPlan}
+                          className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
+                            isCurrentPlan
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : isProcessing
+                                ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                                : `bg-gradient-to-r ${currentPlan.gradient} text-white hover:shadow-lg`
                           }`}
                         >
                           {isProcessing ? (
-                            <>
+                            <div className="flex items-center space-x-2">
                               <Loader2 className="w-5 h-5 animate-spin" />
                               <span>Processing...</span>
-                            </>
+                            </div>
+                          ) : isCurrentPlan ? (
+                            'Current Plan'
                           ) : (
-                            <>
-                              <Crown className="w-5 h-5" />
-                              <span>
-                                Get {currentPlan.name} - ${currentPlan.price}
-                              </span>
-                            </>
+                            `${isUpgrade ? 'Upgrade' : 'Purchase'} ${currentPlan.name} - $${currentPlan.price}`
                           )}
-                        </button>
+                        </motion.button>
+                      </div>
 
-                        <p className="text-xs text-slate-500 mt-3">
-                          Secure payment • 30-day money-back guarantee
-                        </p>
+                      {/* Special Starter Spark Note */}
+                      {selectedPlan === 'starter_spark' && (
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start space-x-3">
+                            <RefreshCw className="h-5 w-5 text-blue-600 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-blue-800 mb-1">
+                                Starter Spark Special Feature
+                              </p>
+                              <p className="text-sm text-blue-700">
+                                You get 2 regenerations using the exact same business prompt. This
+                                gives you 3 different versions of your offer to choose from!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Demo Notice */}
+                      <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Shield className="h-5 w-5 text-amber-600" />
+                          <span className="text-sm text-amber-800">
+                            Demo Mode: This is a demonstration. No real payment will be processed.
+                          </span>
+                        </div>
                       </div>
                     </>
                   )}

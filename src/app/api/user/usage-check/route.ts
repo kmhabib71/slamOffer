@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
-import { UnifiedUserService } from '@/lib/unified-user-service'
+import { authService } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -11,81 +11,141 @@ export async function GET() {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const userEmail = session.user.email
+    const userId = session.user.email
 
-    // Get user profile using the unified service
-    const userProfile = await UnifiedUserService.findByEmail(userEmail)
+    // Get user profile
+    const userProfile = await authService.getUserProfile(userId)
 
     if (!userProfile) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    // Check if user can generate - implement the same logic as authService
-    const canGenerate = await checkUserCanGenerate(userProfile)
+    // Check generation capability
+    const canGenerate = await authService.canUserGenerate(userId, false)
+    const canRegenerate = await authService.canUserGenerate(userId, true)
 
-    // Calculate daily usage count
+    // Get regeneration status
+    const regenerationStatus = await authService.getRegenerationStatus(userId)
+
+    // Calculate daily usage for today
     const today = new Date().toISOString().split('T')[0]
     const todayUsage = userProfile.daily_usage?.find(usage => usage.date === today)
-    const dailyUsageCount = todayUsage?.count || 0
+    const todayCount = todayUsage?.count || 0
 
-    // Return usage data
+    // Get recent generation history
+    const recentHistory = await authService.getGenerationHistory(userId, 5)
+
     return NextResponse.json({
-      canGenerate: canGenerate.canGenerate,
-      reason: canGenerate.reason,
-      remainingCredits: canGenerate.remainingCredits || userProfile.credits_remaining,
-      subscriptionTier: userProfile.subscription_tier,
-      dailyUsageCount,
-      packageDetails: userProfile.package_details,
-      totalGenerated: userProfile.total_offers_generated || 0,
-      lastGenerationDate: userProfile.last_generation_date,
+      success: true,
+      profile: {
+        subscription_tier: userProfile.subscription_tier,
+        credits_remaining: userProfile.credits_remaining,
+        total_offers_generated: userProfile.total_offers_generated || 0,
+        last_generation_date: userProfile.last_generation_date,
+        created_at: userProfile.created_at,
+        package_details: userProfile.package_details,
+      },
+      usage: {
+        today: {
+          count: todayCount,
+          date: today,
+        },
+        daily_limit: userProfile.subscription_tier === 'free' ? 1 : null,
+        daily_remaining:
+          userProfile.subscription_tier === 'free' ? Math.max(0, 1 - todayCount) : null,
+      },
+      generation: {
+        can_generate: canGenerate.canGenerate,
+        can_regenerate: canRegenerate.canGenerate,
+        generation_reason: canGenerate.reason,
+        regeneration_reason: canRegenerate.reason,
+        remaining_credits: canGenerate.remainingCredits || 0,
+        daily_remaining: canGenerate.dailyRemaining,
+        regenerations_remaining: canGenerate.regenerationsRemaining || 0,
+      },
+      regeneration: {
+        available: regenerationStatus.available,
+        remaining: regenerationStatus.remaining || 0,
+        max_regenerations: regenerationStatus.maxRegenerations || 0,
+        has_original_context: !!regenerationStatus.originalContext,
+      },
+      history: recentHistory,
+      limits: {
+        free_tier: {
+          total_credits: 3,
+          daily_limit: 1,
+          description: 'Free users get 3 total generations, 1 per day',
+        },
+        starter_spark: {
+          total_credits: 1,
+          regenerations: 2,
+          description: '1 complete offer + 2 regenerations of the same prompt',
+        },
+        growth_engine: {
+          total_credits: 10,
+          description: '10 complete offers, all features',
+        },
+        agency_arsenal: {
+          total_credits: 30,
+          description: '30 complete offers, all features',
+        },
+      },
     })
   } catch (error) {
     console.error('Error checking usage:', error)
-    return NextResponse.json({ error: 'Failed to check usage' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to check usage',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
 
-// Helper function to check if user can generate (same logic as authService)
-async function checkUserCanGenerate(profile: any): Promise<{
-  canGenerate: boolean
-  reason?: string
-  remainingCredits?: number
-}> {
+export async function POST(request: Request) {
   try {
-    // Free users have limits: max 3 total offers, 1 per day
-    if (profile.subscription_tier === 'free') {
-      // Check total limit
-      if (profile.credits_remaining <= 0) {
-        return {
-          canGenerate: false,
-          reason: 'No more free offers available',
-          remainingCredits: 0,
-        }
-      }
+    const session = await getServerSession(authOptions)
 
-      // Check daily limit - get today's date
-      const today = new Date().toISOString().split('T')[0]
-      const todayUsage = profile.daily_usage?.find((usage: any) => usage.date === today)
-
-      if (todayUsage && todayUsage.count >= 1) {
-        return {
-          canGenerate: false,
-          reason: 'Daily limit reached (1 per day)',
-          remainingCredits: profile.credits_remaining,
-        }
-      }
-
-      return { canGenerate: true, remainingCredits: profile.credits_remaining }
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Paid users can generate if they have credits
-    if (profile.credits_remaining > 0) {
-      return { canGenerate: true, remainingCredits: profile.credits_remaining }
+    const userId = session.user.email
+    const body = await request.json()
+    const { action, isRegeneration = false } = body
+
+    if (action === 'check_can_generate') {
+      const canGenerate = await authService.canUserGenerate(userId, isRegeneration)
+
+      return NextResponse.json({
+        success: true,
+        can_generate: canGenerate.canGenerate,
+        reason: canGenerate.reason,
+        remaining_credits: canGenerate.remainingCredits || 0,
+        daily_remaining: canGenerate.dailyRemaining,
+        regenerations_remaining: canGenerate.regenerationsRemaining || 0,
+      })
     }
 
-    return { canGenerate: false, reason: 'No credits remaining', remainingCredits: 0 }
+    if (action === 'get_regeneration_status') {
+      const regenerationStatus = await authService.getRegenerationStatus(userId)
+
+      return NextResponse.json({
+        success: true,
+        regeneration: regenerationStatus,
+      })
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
-    console.error('Error checking generation limits:', error)
-    return { canGenerate: false, reason: 'Error checking limits' }
+    console.error('Error processing usage check:', error)
+    return NextResponse.json(
+      {
+        error: 'Failed to process usage check',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }

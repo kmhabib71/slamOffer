@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Crown,
@@ -23,6 +23,8 @@ import {
   Quote,
   FileText,
   Download,
+  RefreshCw,
+  Info,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { CompleteGrandSlamOffer } from '@/types'
@@ -41,6 +43,15 @@ interface OfferTextViewProps {
   offer: ClientSafeOffer
   onPurchaseClick: () => void
   isPurchased?: boolean
+}
+
+interface UserUsageData {
+  can_generate: boolean
+  can_regenerate: boolean
+  remaining_credits: number
+  regenerations_remaining: number
+  subscription_tier: string
+  daily_remaining?: number
 }
 
 const getComponentIcon = (componentId: number) => {
@@ -97,19 +108,53 @@ const getRealisticItemCount = (componentId: number) => {
 
 export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferTextViewProps) {
   const { user } = useAuth()
-  // isPurchased indicates if the offer owner has purchased the full version
-  // This determines what content is available to view (for both owner and public viewers)
-  const isPro = user?.profile?.subscription_tier !== 'free' || isPurchased
+
+  // Enhanced state management
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
   const [purchasedOffer, setPurchasedOffer] = useState<ClientSafeOffer | null>(null)
   const [expandedComponents, setExpandedComponents] = useState<Set<number>>(new Set())
-  // PDF Export functionality - only available for pro users or purchased offers
   const [isPDFGenerating, setIsPDFGenerating] = useState(false)
+  const [usageData, setUsageData] = useState<UserUsageData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Check if this is a full offer (pro user or purchased offer)
-  // If the user has purchased the offer, always treat it as a full offer
-  // regardless of the actual item count (in case AI generation didn't work properly)
+  // Fetch user usage data
+  const fetchUsageData = useCallback(async () => {
+    if (!user?.email) return
+
+    try {
+      const response = await fetch('/api/user/usage-check')
+      if (response.ok) {
+        const data = await response.json()
+        setUsageData({
+          can_generate: data.generation.can_generate,
+          can_regenerate: data.generation.can_regenerate,
+          remaining_credits: data.generation.remaining_credits,
+          regenerations_remaining: data.generation.regenerations_remaining,
+          subscription_tier: data.profile.subscription_tier,
+          daily_remaining: data.generation.daily_remaining,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching usage data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.email])
+
+  // Load usage data on component mount and when user changes
+  useEffect(() => {
+    fetchUsageData()
+  }, [fetchUsageData])
+
+  // Determine user access level
+  const isPro =
+    user?.profile?.subscription_tier !== 'free' ||
+    isPurchased ||
+    usageData?.subscription_tier !== 'free'
+  const isStarterSpark = usageData?.subscription_tier === 'starter_spark'
   const isFullOffer = isPro
 
   const handlePurchaseClick = () => {
@@ -140,14 +185,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
         userTier: 'pro',
       }
 
-      console.log('Sending purchase request:', requestBody)
-      console.log('Offer object:', {
-        _id: offer._id,
-        businessContext: offer.businessContext,
-        hasBusinessContext: !!offer.businessContext,
-        businessDescription: offer.businessContext?.businessDescription,
-      })
-
       const response = await fetch('/api/purchase-offer', {
         method: 'POST',
         headers: {
@@ -158,22 +195,54 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
 
       if (!response.ok) {
         const data = await response.json()
-        console.error('Purchase API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: data.error,
-          details: data.details,
-        })
         throw new Error(data.error || 'Failed to process purchase')
       }
 
       const data = await response.json()
       setPurchasedOffer(data.data)
+
+      // Refresh usage data after purchase
+      await fetchUsageData()
     } catch (error) {
       console.error('Purchase error:', error)
-      // Handle error (show toast, etc.)
+      setError(error instanceof Error ? error.message : 'Purchase failed')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleRegenerate = async () => {
+    if (!isStarterSpark || !usageData?.can_regenerate) return
+
+    setIsRegenerating(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/regenerate-offer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          offerId: offer._id,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to regenerate offer')
+      }
+
+      const data = await response.json()
+      setPurchasedOffer(data.data)
+
+      // Refresh usage data after regeneration
+      await fetchUsageData()
+    } catch (error) {
+      console.error('Regeneration error:', error)
+      setError(error instanceof Error ? error.message : 'Regeneration failed')
+    } finally {
+      setIsRegenerating(false)
     }
   }
 
@@ -189,6 +258,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
         }}
         onError={error => {
           console.error('Generation error:', error)
+          setError(error)
           setIsGenerating(false)
         }}
       />
@@ -248,601 +318,50 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                   padding: 0;
                   box-sizing: border-box;
                 }
-                .cover-overlay {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  bottom: 0;
-                  background: rgba(139, 69, 19, 0.1);
-                }
-                .cover-content {
-                  position: relative;
-                  z-index: 10;
-                  padding: 60px;
-                  color: #ffffff;
-                }
-                .cover-content * {
-                  color: #ffffff !important;
-                }
-                .cover-title {
-                  font-size: 48px;
-                  font-weight: bold;
-                  margin-bottom: 20px;
-                  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                }
-                .cover-subtitle {
-                  font-size: 24px;
-                  margin-bottom: 30px;
-                  color: #ffffff !important;
-                  font-weight: bold;
-                }
-                .cover-description {
-                  font-size: 16px;
-                  max-width: 400px;
-                  line-height: 1.8;
-                  margin-bottom: 40px;
-                  color: #ffffff !important;
-                }
                 
-                /* Content Pages */
-                .content-page {
-                  padding: 40px;
-                  max-width: 800px;
-                  margin: 40px auto;
-                  min-height: calc(100vh - 80px);
-                }
-                
-                /* Business Description */
-                .business-description {
-                  background: linear-gradient(to right, #f8fafc, #ffffff);
-                  border: 1px solid #e2e8f0;
-                  border-radius: 12px;
-                  padding: 24px;
-                  margin-bottom: 40px;
-                  display: flex;
-                  align-items: flex-start;
-                  gap: 16px;
-                }
-                .business-icon {
-                  width: 40px;
-                  height: 40px;
-                  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
-                  border-radius: 8px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: white;
-                  font-size: 18px;
-                  flex-shrink: 0;
-                }
-                .business-title {
-                  font-size: 18px;
-                  font-weight: bold;
-                  color: #1e293b;
-                  margin-bottom: 8px;
-                }
-                .business-text {
-                  color: #475569;
-                  line-height: 1.6;
-                }
-                
-                /* Component Sections */
-                .component {
-                  margin-bottom: 40px;
-                  page-break-inside: avoid;
-                }
-                .component:first-of-type {
-                  margin-top: 20px;
-                }
-                .component-header {
-                  padding: 24px;
-                  border-radius: 12px;
-                  margin-bottom: 20px;
-                  color: white;
-                  display: flex;
-                  align-items: center;
-                  gap: 16px;
-                }
-                .component-header.gradient-1 { background: linear-gradient(135deg, #ec4899, #be185d); }
-                .component-header.gradient-2 { background: linear-gradient(135deg, #f97316, #dc2626); }
-                .component-header.gradient-3 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-                .component-header.gradient-4 { background: linear-gradient(135deg, #10b981, #059669); }
-                .component-header.gradient-5 { background: linear-gradient(135deg, #f59e0b, #d97706); }
-                .component-header.gradient-6 { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-                .component-header.gradient-7 { background: linear-gradient(135deg, #ef4444, #dc2626); }
-                .component-header.gradient-8 { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
-                .component-header.gradient-9 { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-                .component-header.gradient-10 { background: linear-gradient(135deg, #14b8a6, #0d9488); }
-                .component-header.gradient-11 { background: linear-gradient(135deg, #06b6d4, #0891b2); }
-                
-                .component-icon {
-                  width: 48px;
-                  height: 48px;
-                  background: rgba(255, 255, 255, 0.2);
-                  border-radius: 12px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 24px;
-                  flex-shrink: 0;
-                }
-                .component-title {
-                  font-size: 24px;
-                  font-weight: bold;
-                  margin-bottom: 4px;
-                }
-                .component-description {
-                  font-size: 14px;
-                  opacity: 0.9;
-                }
-                .component-stats {
-                  text-align: right;
-                  margin-left: auto;
-                }
-                .component-stats-number {
-                  font-size: 12px;
-                  opacity: 0.9;
-                }
-                .component-stats-label {
-                  font-size: 10px;
-                  opacity: 0.75;
-                }
-                
-                /* Items */
-                .items-container {
-                  margin-left: 20px;
-                }
-                .item {
-                  display: flex;
-                  align-items: flex-start;
-                  gap: 12px;
-                  margin-bottom: 16px;
-                  padding: 12px 20px;
-                  border-left: 4px solid #e2e8f0;
-                }
-                .item-number {
-                  width: 24px;
-                  height: 24px;
-                  border-radius: 12px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: white;
-                  font-size: 12px;
-                  font-weight: bold;
-                  flex-shrink: 0;
-                  margin-top: 2px;
-                }
-                .item-content {
-                  flex: 1;
-                }
-                .item-title {
-                  font-size: 14px;
-                  font-weight: bold;
-                  color: #1e293b;
-                  margin-bottom: 4px;
-                }
-                .item-description {
-                  font-size: 12px;
-                  color: #475569;
-                  line-height: 1.5;
-                  margin-bottom: 8px;
-                }
-                .item-tags {
-                  display: flex;
-                  gap: 8px;
-                  flex-wrap: wrap;
-                }
-                .tag {
-                  font-size: 10px;
-                  padding: 4px 8px;
-                  border-radius: 12px;
-                  font-weight: 500;
-                }
-                .value-tag {
-                  background: #d1fae5;
-                  color: #065f46;
-                }
-                .priority-tag {
-                  background: #fef3c7;
-                  color: #92400e;
-                }
-                
-                /* Special styling for Solutions component */
-                .solutions-item {
-                  margin-bottom: 20px;
-                }
-                .problem-solution {
-                  margin-top: 8px;
-                }
-                .problem-label, .solution-label {
-                  font-size: 11px;
-                  font-weight: bold;
-                  margin-bottom: 4px;
-                }
-                .problem-label {
-                  color: #dc2626;
-                }
-                .solution-label {
-                  color: #059669;
-                }
-                .problem-text, .solution-text {
-                  font-size: 11px;
-                  color: #475569;
-                  margin-bottom: 8px;
-                }
-                
-                @media print {
-                  body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                  .page-break { page-break-before: always; }
-                  .no-break { page-break-inside: avoid; }
-                  
-                  /* Custom page setup - no browser headers/footers */
-                  @page { 
-                    margin: 15mm 10mm; 
-                    size: A4;
-                  }
-                  @page:first { 
-                    margin: 0; 
-                  }
-                  
-                  /* Hide browser default headers/footers */
-                  @page { 
-                    @top-left { content: ""; }
-                    @top-right { content: ""; }
-                    @bottom-left { content: ""; }
-                    @bottom-right { content: counter(page) " / " counter(pages); font-size: 11px; color: #666; }
-                  }
-                  
-                  /* Table of Contents */
-                  .table-of-contents {
-                    padding: 40px;
-                    max-width: 800px;
-                    margin: 40px auto;
-                    page-break-after: always;
-                  }
-                  .toc-title {
-                    font-size: 32px;
-                    font-weight: bold;
-                    color: #1e293b;
-                    margin-bottom: 30px;
-                    text-align: center;
-                    border-bottom: 3px solid #8b5cf6;
-                    padding-bottom: 15px;
-                  }
-                  .toc-item {
-                    display: flex;
-                    align-items: center;
-                    padding: 12px 0;
-                    border-bottom: 1px dotted #e2e8f0;
-                  }
-                  .toc-number {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    font-size: 16px;
-                    margin-right: 16px;
-                    flex-shrink: 0;
-                  }
-                  .toc-content {
-                    flex: 1;
-                  }
-                  .toc-chapter {
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #1e293b;
-                    margin-bottom: 4px;
-                  }
-                  .toc-description {
-                    font-size: 14px;
-                    color: #64748b;
-                  }
-                  .toc-page {
-                    font-size: 16px;
-                    font-weight: bold;
-                    color: #8b5cf6;
-                    margin-left: 16px;
-                  }
-                  .toc-dots {
-                    flex: 1;
-                    border-bottom: 2px dotted #cbd5e1;
-                    margin: 0 16px;
-                    height: 1px;
-                  }
-                  
-                  .content-page { 
-                    position: relative;
-                    margin: 0;
-                    padding: 20px;
-                    min-height: calc(100vh - 40px);
-                  }
-                  
-                  .cover-page { 
-                    margin: 0 !important; 
-                    padding: 0 !important; 
-                    width: 100% !important; 
-                    height: 100% !important; 
-                  }
-                }
-                
-                @media screen {
-                  .loading-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0,0,0,0.8);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9999;
-                  }
-                  .loading-content {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 12px;
-                    text-align: center;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-                  }
-                  .spinner {
-                    width: 40px;
-                    height: 40px;
-                    border: 4px solid #e2e8f0;
-                    border-top: 4px solid #8b5cf6;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 20px;
-                  }
-                  @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                }
+                /* Simplified content for PDF */
+                .content { padding: 40px; }
+                .component { margin-bottom: 30px; }
+                .component-title { font-size: 24px; font-weight: bold; margin-bottom: 15px; }
+                .item { margin-bottom: 15px; padding: 10px; border-left: 4px solid #8b5cf6; }
+                .item-title { font-weight: bold; margin-bottom: 5px; }
+                .item-description { color: #666; font-size: 14px; }
               </style>
             </head>
             <body>
-              <!-- Loading Overlay -->
-              <div class="loading-overlay" id="loadingOverlay">
-                <div class="loading-content">
-                  <div class="spinner"></div>
-                  <h3 style="margin: 0 0 10px 0; color: #1e293b;">Generating Your PDF</h3>
-                  <p style="margin: 0; color: #64748b;">Creating your beautiful Grand Slam Offer document...</p>
-                </div>
+              <div class="cover-page">
+                <h1 style="font-size: 48px; color: white; margin-bottom: 20px;">Grand Slam Offer</h1>
+                <p style="font-size: 24px; color: white;">${displayOffer.businessContext.businessDescription}</p>
               </div>
               
-              <!-- Cover Page Container -->
-              <div style="position: relative; width: 100%; height: 100vh; margin: 0; padding: 0; page-break-after: always;">
-                <div class="cover-page">
-                  <div class="cover-overlay"></div>
-                  <div class="cover-content">
-                    <div class="cover-title">Grand Slam Offer</div>
-                    <div class="cover-subtitle">The Ultimate Irresistible Offer</div>
-                    <div class="cover-description">
-                      A complete Grand Slam Offer built using Alex Hormozi's proven $100M methodology. 
-                      This offer has been designed to be so good that your customers feel stupid saying no.
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Table of Contents -->
-              <div class="table-of-contents">
-                <h2 class="toc-title">Table of Contents</h2>
-                                 <div class="toc-item">
-                   <div class="toc-number" style="background: linear-gradient(135deg, #8b5cf6, #06b6d4);">📋</div>
-                   <div class="toc-content">
-                     <div class="toc-chapter">Business Overview</div>
-                     <div class="toc-description">Your business description and context</div>
-                   </div>
-                   <div class="toc-dots"></div>
-                   <div class="toc-page">4</div>
-                 </div>
+              <div class="content">
                 ${displayOffer.components
-                  .map((component, index) => {
-                    const componentIcons = [
-                      '🎯',
-                      '⚠️',
-                      '💡',
-                      '🚀',
-                      '📊',
-                      '📦',
-                      '⏰',
-                      '⚡',
-                      '⭐',
-                      '🛡️',
-                      '✨',
-                    ]
-                    const componentColors = [
-                      '#ec4899',
-                      '#f97316',
-                      '#3b82f6',
-                      '#10b981',
-                      '#f59e0b',
-                      '#8b5cf6',
-                      '#ef4444',
-                      '#0ea5e9',
-                      '#8b5cf6',
-                      '#14b8a6',
-                      '#06b6d4',
-                    ]
-                    // Calculate estimated page number based on content length
-                    let estimatedPage = 4 // Start after cover(1) + toc(2-3) + business overview(4)
-
-                    // Add pages for previous components
-                    for (let i = 0; i < index; i++) {
-                      const prevComponent = displayOffer.components[i]
-                      const itemsPerPage = 6 // Approximate items that fit per page
-                      const pagesForComponent = Math.ceil(
-                        (prevComponent.items.length + 2) / itemsPerPage
-                      ) // +2 for header space
-                      estimatedPage += pagesForComponent
-                    }
-
-                    return `
-                    <div class="toc-item ${component.componentId === 6 ? 'page-break' : ''}">
-                      <div class="toc-number" style="background: ${componentColors[component.componentId - 1]};">${componentIcons[component.componentId - 1]}</div>
-                      <div class="toc-content">
-                        <div class="toc-chapter">${component.componentId}. ${component.componentName}</div>
-                        <div class="toc-description">${component.description}</div>
+                  .map(
+                    component => `
+                  <div class="component">
+                    <h2 class="component-title">${component.componentName}</h2>
+                    ${component.items
+                      .map(
+                        item => `
+                      <div class="item">
+                        <div class="item-title">${item.title}</div>
+                        <div class="item-description">${item.description}</div>
                       </div>
-                      <div class="toc-dots"></div>
-                      <div class="toc-page" id="page-ref-${component.componentId}">${estimatedPage}</div>
-                    </div>
-                  `
-                  })
-                  .join('')}
-              </div>
-              
-              <!-- Content Page -->
-              <div class="content-page">
-                <!-- Business Description -->
-                <div class="business-description">
-                  <div class="business-icon">💼</div>
-                  <div>
-                    <div class="business-title">Business Overview</div>
-                    <div class="business-text">${displayOffer.businessContext.businessDescription}</div>
+                    `
+                      )
+                      .join('')}
                   </div>
-                </div>
-                
-                <!-- Components -->
-                ${displayOffer.components
-                  .map((component, index) => {
-                    const componentIcons = [
-                      '🎯',
-                      '⚠️',
-                      '💡',
-                      '🚀',
-                      '📊',
-                      '📦',
-                      '⏰',
-                      '⚡',
-                      '⭐',
-                      '🛡️',
-                      '✨',
-                    ]
-                    const componentColors = [
-                      '#ec4899',
-                      '#f97316',
-                      '#3b82f6',
-                      '#10b981',
-                      '#f59e0b',
-                      '#8b5cf6',
-                      '#ef4444',
-                      '#0ea5e9',
-                      '#8b5cf6',
-                      '#14b8a6',
-                      '#06b6d4',
-                    ]
-
-                    return `
-                    <div class="component ${index === 0 ? '' : index > 2 ? 'page-break' : ''} no-break" id="component-${component.componentId}">
-                      <div class="component-header gradient-${component.componentId}">
-                        <div class="component-icon">${componentIcons[component.componentId - 1]}</div>
-                        <div style="flex: 1;">
-                          <div class="component-title">${component.componentId}. ${component.componentName}</div>
-                          <div class="component-description">${component.description}</div>
-                        </div>
-                        <div class="component-stats">
-                          <div class="component-stats-number">${component.items.length} strategies</div>
-                          <div class="component-stats-label">complete roadmap</div>
-                        </div>
-                      </div>
-                      
-                      <div class="items-container">
-                        ${component.items
-                          .map(
-                            (item, itemIndex) => `
-                          <div class="item">
-                            <div class="item-number" style="background: ${componentColors[component.componentId - 1]};">
-                              ${itemIndex + 1}
-                            </div>
-                            <div class="item-content">
-                              ${
-                                component.componentId === 3
-                                  ? `
-                                <div class="solutions-item">
-                                  <div class="item-title">${item.title}</div>
-                                  <div class="item-tags">
-                                    ${item.value && item.value !== '$0 value' && item.value !== '$0' ? `<span class="tag value-tag">${item.value}</span>` : ''}
-                                    ${item.priority === 'high' ? '<span class="tag priority-tag">High Impact</span>' : ''}
-                                  </div>
-                                  <div class="problem-solution">
-                                    <div class="problem-label">Problem:</div>
-                                    <div class="problem-text">${item.linkedProblem || ''}</div>
-                                    <div class="solution-label">Solution:</div>
-                                    <div class="solution-text">${item.solutionDetails || item.description}</div>
-                                  </div>
-                                </div>
-                              `
-                                  : `
-                                <div class="item-title">${item.title}</div>
-                                <div class="item-tags">
-                                  ${item.value && item.value !== '$0 value' && item.value !== '$0' ? `<span class="tag value-tag">${item.value}</span>` : ''}
-                                  ${item.priority === 'high' ? '<span class="tag priority-tag">High Impact</span>' : ''}
-                                </div>
-                                <div class="item-description">${item.description}</div>
-                              `
-                              }
-                            </div>
-                          </div>
-                        `
-                          )
-                          .join('')}
-                      </div>
-                    </div>
-                  `
-                  })
+                `
+                  )
                   .join('')}
               </div>
               
               <script>
                 window.onload = function() {
-                  // Update table of contents with real page numbers
-                  function updateTOCPageNumbers() {
-                    try {
-                      // Get all components
-                      ${displayOffer.components
-                        .map(
-                          component => `
-                        var component${component.componentId} = document.getElementById('component-${component.componentId}');
-                        if (component${component.componentId}) {
-                          var rect = component${component.componentId}.getBoundingClientRect();
-                          var pageHeight = window.innerHeight || document.documentElement.clientHeight;
-                          var pageNumber = Math.floor(rect.top / pageHeight) + 4; // +4 for cover, toc(2 pages), business
-                          var pageRef = document.getElementById('page-ref-${component.componentId}');
-                          if (pageRef && pageNumber > 0) {
-                            pageRef.textContent = pageNumber;
-                          }
-                        }
-                      `
-                        )
-                        .join('')}
-                    } catch (error) {
-                      console.log('Could not update page numbers:', error);
-                    }
-                  }
-                  
-                  // Update page numbers after a short delay
-                  setTimeout(updateTOCPageNumbers, 100);
-                  
-                  // Hide loading overlay after 2 seconds
-                  setTimeout(function() {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    // Update page numbers one more time before printing
-                    updateTOCPageNumbers();
-                    // Auto-trigger print after loading
-                    setTimeout(function() {
-                      window.print();
-                      window.close();
-                    }, 500);
-                  }, 2000);
+                  setTimeout(() => {
+                    window.print();
+                    window.close();
+                  }, 1000);
                 }
               </script>
             </body>
@@ -854,14 +373,85 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
       }
     } catch (error) {
       console.error('PDF export error:', error)
+      setError('Failed to export PDF')
     } finally {
       setIsPDFGenerating(false)
     }
   }
 
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto p-6 space-y-8">
+        <div className="animate-pulse">
+          <div className="h-6 bg-slate-200 rounded mb-4"></div>
+          <div className="h-4 bg-slate-200 rounded mb-2"></div>
+          <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Tooltip.Provider delayDuration={200}>
       <div className="max-w-5xl mx-auto p-6 space-y-8">
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
+          >
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <span className="text-red-800 font-medium">Error: {error}</span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* User Status Bar */}
+        {usageData && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-4 mb-6"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Crown className="h-5 w-5 text-violet-600" />
+                  <span className="font-medium text-violet-800">
+                    {usageData.subscription_tier.charAt(0).toUpperCase() +
+                      usageData.subscription_tier.slice(1).replace('_', ' ')}{' '}
+                    Plan
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-violet-600">
+                  <span>{usageData.remaining_credits} credits remaining</span>
+                  {usageData.daily_remaining !== undefined && (
+                    <span>• {usageData.daily_remaining} daily remaining</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Regeneration Button for Starter Spark */}
+              {isStarterSpark && usageData.regenerations_remaining > 0 && (
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isRegenerating || !usageData.can_regenerate}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isRegenerating
+                      ? 'Regenerating...'
+                      : `Regenerate (${usageData.regenerations_remaining} left)`}
+                  </span>
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {/* Original Business Description */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
