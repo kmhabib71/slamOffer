@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth-config'
 import { dbHelpers } from '@/lib/auth'
 import clientPromise from '@/lib/mongodb'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const userId = session.user.email
-    const { id } = await params
+    const { id } = await context.params
     const offerId = id
 
     if (!offerId) {

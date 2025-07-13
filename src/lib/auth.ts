@@ -163,26 +163,7 @@ export const authService = {
 
       if (!profile) return { canGenerate: false, reason: 'User profile not found' }
 
-      // Handle regenerations for Starter Spark
-      if (isRegeneration && profile.subscription_tier === 'starter_spark') {
-        const regenerationsUsed = profile.package_details?.regenerations_used || 0
-        const maxRegenerations = profile.package_details?.regeneration_count || 2
-
-        if (regenerationsUsed >= maxRegenerations) {
-          return {
-            canGenerate: false,
-            reason: 'Maximum regenerations reached',
-            remainingCredits: profile.credits_remaining,
-            regenerationsRemaining: 0,
-          }
-        }
-
-        return {
-          canGenerate: true,
-          remainingCredits: profile.credits_remaining,
-          regenerationsRemaining: maxRegenerations - regenerationsUsed,
-        }
-      }
+      // Regeneration functionality removed
 
       // Free users have limits: max 3 total offers, 1 per day
       if (profile.subscription_tier === 'free') {
@@ -261,7 +242,7 @@ export const authService = {
           price_per_offer: 9,
           total_package_value: 9,
           purchase_date: new Date(),
-          regeneration_count: 2,
+          regeneration_count: 0,
           regenerations_used: 0,
           ...packageDetails,
         }
@@ -319,33 +300,7 @@ export const authService = {
       const today = new Date().toISOString().split('T')[0]
       const updateQuery = profile.userId ? { userId } : { email: userId }
 
-      // For regenerations, don't deduct credits but track regeneration count
-      if (isRegeneration && profile.subscription_tier === 'starter_spark') {
-        const regenerationsUsed = (profile.package_details?.regenerations_used || 0) + 1
-
-        // Add to generation history
-        const currentHistory = profile.generation_history || []
-        const newHistory = [
-          ...currentHistory,
-          {
-            date: new Date(),
-            offer_id: 'regeneration',
-            type: 'regeneration' as const,
-            credits_used: 0,
-          },
-        ]
-        const trimmedHistory = newHistory.slice(-100)
-
-        const result = await db.collection('user_profiles').updateOne(updateQuery, {
-          $set: {
-            'package_details.regenerations_used': regenerationsUsed,
-            generation_history: trimmedHistory,
-            updated_at: new Date(),
-          },
-        })
-
-        return result.acknowledged
-      }
+      // Regeneration functionality removed
 
       // For regular generations, deduct credits
       const newCredits = Math.max(0, profile.credits_remaining - amount)
@@ -483,29 +438,13 @@ export const authService = {
     }
   },
 
-  // Check if user has regenerations available
+  // Regeneration functionality removed - return empty status
   async getRegenerationStatus(userId: string) {
-    try {
-      const profile = await this.getUserProfile(userId)
-      if (!profile) return { available: false, remaining: 0 }
-
-      if (profile.subscription_tier === 'starter_spark') {
-        const regenerationsUsed = profile.package_details?.regenerations_used || 0
-        const maxRegenerations = profile.package_details?.regeneration_count || 2
-        const remaining = Math.max(0, maxRegenerations - regenerationsUsed)
-
-        return {
-          available: remaining > 0,
-          remaining,
-          maxRegenerations,
-          originalContext: profile.package_details?.original_business_context,
-        }
-      }
-
-      return { available: false, remaining: 0 }
-    } catch (error) {
-      console.error('Error checking regeneration status:', error)
-      return { available: false, remaining: 0 }
+    return {
+      available: false,
+      remaining: 0,
+      maxRegenerations: 0,
+      originalContext: null,
     }
   },
 
@@ -663,7 +602,7 @@ export const subscriptionHelpers = {
 
 // Database helpers for offers and purchases
 export const dbHelpers = {
-  // Save purchased offer
+  // Save purchased offer (prevents duplicates)
   async savePurchasedOffer(
     userId: string,
     offerId: string,
@@ -674,6 +613,30 @@ export const dbHelpers = {
       const client = await clientPromise
       const db = client.db()
 
+      // Check if this offer is already purchased to prevent duplicates
+      const existingPurchase = await db.collection('purchased_offers').findOne({
+        userId,
+        offerId,
+        status: 'active',
+      })
+
+      if (existingPurchase) {
+        console.log('Offer already purchased, updating instead of creating duplicate')
+        // Update existing purchase with new data
+        const result = await db.collection('purchased_offers').updateOne(
+          { userId, offerId, status: 'active' },
+          {
+            $set: {
+              offerData,
+              componentName: componentName || null,
+              updated_at: new Date(),
+            },
+          }
+        )
+        return result.acknowledged
+      }
+
+      // Create new purchase
       const purchase = {
         _id: new ObjectId(),
         userId,

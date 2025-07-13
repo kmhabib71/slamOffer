@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     const userId = session.user.email
     const body = await request.json()
-    const { packageType, paymentDetails } = body
+    const { packageType, paymentDetails, offerId, businessContext } = body
 
     // Validate package type
     if (!['starter_spark', 'growth_engine', 'agency_arsenal'].includes(packageType)) {
@@ -188,7 +188,7 @@ export async function POST(request: Request) {
           total_package_value: selectedPackage.total_package_value,
           purchase_date: new Date(),
           regeneration_count: selectedPackage.regeneration_count,
-          original_business_context: null, // Will be set when first generation happens
+          original_business_context: businessContext || null, // Store business context for unlock purchases
         }
       )
 
@@ -196,10 +196,30 @@ export async function POST(request: Request) {
         throw new Error('Failed to upgrade subscription')
       }
 
-      // Update credits manually if we preserved free credits
+      // Handle unlock purchase logic - immediately consume credit for Starter Spark
+      let isUnlockPurchase = Boolean(offerId && businessContext)
+      
+      if (isUnlockPurchase && packageType === 'starter_spark') {
+        console.log('Unlock purchase detected - will consume credit immediately for:', {
+          userId,
+          offerId,
+          packageType
+        })
+        
+        // For unlock purchases, set credits to 0 since the purchase is for immediate use
+        finalCredits = 0
+      }
+
+      // Update credits manually if we preserved free credits or it's an unlock purchase
       if (finalCredits !== selectedPackage.credits) {
         await authService.updateUserProfile(userId, {
           credits_remaining: finalCredits,
+        })
+        console.log('Updated credits:', {
+          isUnlockPurchase,
+          expectedCredits: selectedPackage.credits,
+          finalCredits,
+          reason: isUnlockPurchase ? 'unlock_purchase_consumed' : 'preserved_free_credits'
         })
       }
 
@@ -216,7 +236,58 @@ export async function POST(request: Request) {
         toTier: packageType,
         finalCredits,
         packageValue: selectedPackage.total_package_value,
+        isUnlockPurchase,
       })
+
+      // Handle unlock purchase generation immediately
+      let generatedOffer = null
+      if (isUnlockPurchase && offerId && businessContext) {
+        console.log('🎯 UNLOCK PURCHASE - Generating offer immediately')
+        
+        try {
+          // Import and generate the complete offer
+          const { generateCompleteGrandSlamOffer } = await import('@/lib/openai')
+          const { dbHelpers } = await import('@/lib/auth')
+          const { emailService } = await import('@/lib/email-service')
+          
+          console.log('⚡ Starting immediate OpenAI generation for unlock purchase')
+          
+          generatedOffer = await generateCompleteGrandSlamOffer({
+            businessContext,
+            userTier: 'pro',
+            generateComplete: true,
+            offerId: offerId,
+          })
+          
+          console.log('✅ OpenAI generation completed, saving to database')
+          
+          // Save the generated offer
+          await dbHelpers.savePurchasedOffer(userId, offerId, generatedOffer)
+          
+          console.log('✅ Offer saved to database successfully')
+          
+          // Send email notification
+          try {
+            await emailService.sendOfferGenerationComplete({
+              userEmail: session.user.email!,
+              userName: session.user.name || '',
+              offerId: offerId,
+              offerTitle: `Grand Slam Offer for ${businessContext.businessDescription?.substring(0, 50)}...`,
+              isFullGeneration: true,
+              businessDescription: businessContext.businessDescription || '',
+            })
+            console.log('✅ Email notification sent')
+          } catch (emailError) {
+            console.error('⚠️ Email notification failed:', emailError)
+            // Don't fail the whole purchase for email issues
+          }
+          
+        } catch (generationError) {
+          console.error('❌ Error during unlock purchase generation:', generationError)
+          // Don't fail the purchase, but log the error
+          // User can try generating again from the dashboard
+        }
+      }
 
       return NextResponse.json({
         success: true,
@@ -237,7 +308,11 @@ export async function POST(request: Request) {
           creditsAdded: selectedPackage.credits,
           creditsPreserved: finalCredits - selectedPackage.credits,
           totalCredits: finalCredits,
+          isUnlockPurchase,
         },
+        // Include generated offer data for unlock purchases
+        generatedOffer: generatedOffer,
+        offerGenerated: Boolean(generatedOffer),
       })
     } catch (error) {
       console.error('Error upgrading subscription:', error)

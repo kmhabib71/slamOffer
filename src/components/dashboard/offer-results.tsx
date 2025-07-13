@@ -32,7 +32,7 @@ interface OfferResultsProps {
   offer: ClientSafeOffer
   viewMode: 'mindmap' | 'text'
   onViewModeChange: (mode: 'mindmap' | 'text') => void
-  onPurchaseClick: (componentName?: string) => void
+  onPurchaseClick: (componentName?: string, offerId?: string, businessContext?: any) => void
   onStartOver: () => void
   isPurchased?: boolean
 }
@@ -141,7 +141,7 @@ export function OfferResults({
           <div className="flex items-center space-x-4">
             {isOwner && !isPro && (
               <button
-                onClick={() => onPurchaseClick()}
+                onClick={() => onPurchaseClick(undefined, offer._id, offer.businessContext)}
                 className="bg-gradient-to-r from-violet-500 to-sky-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-violet-600 hover:to-sky-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
               >
                 <Crown className="h-5 w-5" />
@@ -242,7 +242,7 @@ export function OfferResults({
               the complete Grand Slam Offer system that could be worth millions to your business.
             </p>
             <button
-              onClick={() => onPurchaseClick()}
+              onClick={() => onPurchaseClick(undefined, offer._id, offer.businessContext)}
               className="bg-white text-violet-600 px-8 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 inline-flex items-center space-x-3"
             >
               <Crown className="h-6 w-6" />

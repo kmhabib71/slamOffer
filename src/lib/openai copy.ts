@@ -5,19 +5,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-// Global request counter to track OpenAI usage
-let globalRequestCounter = 0
-let globalTokenUsage = 0
-
-function trackOpenAIRequest(functionName: string, tokens: number) {
-  globalRequestCounter++
-  globalTokenUsage += tokens
-  console.log(`🌍 GLOBAL OPENAI STATS - Request #${globalRequestCounter}`)
-  console.log(`💰 Total tokens used in session: ${globalTokenUsage}`)
-  console.log(`📊 Function: ${functionName}`)
-  console.log('---')
-}
-
 const SYSTEM_PROMPT = `You are an expert in Alex Hormozi's $100M Offers methodology. You understand the complete framework:
 
 **VALUE EQUATION:** Value = (Dream Outcome × Perceived Likelihood) ÷ (Time Delay + Effort & Sacrifice)
@@ -60,26 +47,116 @@ For Solutions List component, format each item as:
   "priority": "high/medium/low"
 }`
 
-// OPTIMIZED PREVIEW GENERATION - Generates 3 items for ALL 11 components in single API call
-export async function generatePreview(businessContext: {
-  businessDescription: string
-}): Promise<Record<ComponentId, PreviewResponse>> {
-  console.log('🚀 OPENAI REQUEST START - generatePreview')
-  console.log('📊 Expected tokens: 5,000 MAX')
-  console.log('🎯 Function: generatePreview (ALL 11 components preview)')
-  console.log('📝 Business context length:', businessContext.businessDescription?.length || 0)
-  
-  try {
-    // Single optimized prompt for all 11 components with 3 items each (max 5000 tokens)
-    const batchPrompt = `Generate a comprehensive Grand Slam Offer preview for this business:
+const generatePrompt = (request: PreviewRequest): string => {
+  const { businessContext, componentId } = request
+  const componentName = COMPONENT_NAMES[componentId]
+
+  // Component-specific value drivers based on Hormozi's framework
+  const valueDrivers = {
+    1: 'Dream Outcome - Focus on specific, measurable end results',
+    2: 'Problems that prevent achievement of the dream outcome',
+    3: 'Solutions that directly address each problem and increase perceived likelihood',
+    4: 'Delivery vehicles that minimize time delay and effort required',
+    5: 'High-value, low-cost solutions that maximize the value equation',
+    6: 'Value stacking that makes the offer irresistible',
+    7: 'Scarcity elements that increase perceived value',
+    8: 'Urgency triggers that decrease time delay',
+    9: 'Bonuses that increase dream outcome and perceived likelihood',
+    10: 'Guarantees that maximize perceived likelihood of achievement',
+    11: 'Names that capture dream outcome and speed of achievement',
+  }
+
+  return `Generate 3 high-impact preview items for ${componentName} that align with Hormozi's value equation and ${valueDrivers[componentId]}.
 
 Business Description:
 ${businessContext.businessDescription}
 
-Generate EXACTLY 3 high-impact preview items for each of the 11 components below. Follow Hormozi's Value Equation framework:
+Requirements:
+1. Each preview must directly impact the value equation by either:
+   - Increasing Dream Outcome or Perceived Likelihood (numerator)
+   - Decreasing Time Delay or Effort & Sacrifice (denominator)
+2. Use specific numbers and timeframes
+3. Focus on transformation, not features
+4. Create curiosity for remaining items
+5. Make it specific to the business context
+
+Format each preview item as JSON:
+{
+  "previewItems": [
+    {
+      "title": "Benefit-driven title showing transformation",
+      "description": "Specific description showing how it impacts the value equation",
+      "value": "Monetary value based on impact to dream outcome"
+    }
+  ],
+  "totalItemsAvailable": 12,
+  "componentName": "${componentName}",
+  "unlockCTA": "Custom call-to-action that creates urgency"
+}`
+}
+
+export async function generatePreview(request: PreviewRequest): Promise<PreviewResponse> {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // More cost-efficient model
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: generatePrompt(request) },
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+      max_tokens: 1500, // Limit tokens for cost control
+    })
+
+    const response = JSON.parse(completion.choices[0].message.content || '{}') as PreviewResponse
+
+    // Validate response format
+    if (!response.previewItems || !Array.isArray(response.previewItems)) {
+      throw new Error('Invalid response format from OpenAI')
+    }
+
+    // Ensure preview items follow value equation
+    const enhancedItems = response.previewItems.map(item => ({
+      ...item,
+      value: item.value || calculateValueImpact(item.description),
+    }))
+
+    return {
+      ...response,
+      previewItems: enhancedItems,
+      componentName: COMPONENT_NAMES[request.componentId],
+      totalItemsAvailable: response.totalItemsAvailable || 12,
+      unlockCTA:
+        response.unlockCTA ||
+        `Unlock ${response.totalItemsAvailable - 3} more ${COMPONENT_NAMES[request.componentId]} strategies →`,
+    }
+  } catch (error) {
+    console.error('Error generating preview:', error)
+    throw error
+  }
+}
+
+// Helper function to estimate value impact if not provided
+function calculateValueImpact(description: string): string {
+  // This is a placeholder - you could implement more sophisticated value calculation
+  return '$1,000+ in value'
+}
+
+// Batch generation for all 11 components - optimized for cost and efficiency
+export async function generateAllComponents(businessContext: {
+  businessDescription: string
+}): Promise<Record<ComponentId, PreviewResponse>> {
+  try {
+    // Single optimized prompt for all components
+    const batchPrompt = `Generate a complete Grand Slam Offer for this business:
+
+Business Description:
+${businessContext.businessDescription}
+
+Generate 3 high-impact items for each of the 11 components below. Follow Hormozi's Value Equation framework:
 Value = (Dream Outcome × Perceived Likelihood) ÷ (Time Delay + Effort & Sacrifice)
 
-Components to generate (3 items each):
+Components to generate:
 1. Dream Outcome Identification - Ultimate transformation customers want
 2. Problems & Obstacles List - What prevents achievement
 3. Solutions List - How to overcome each problem
@@ -92,8 +169,6 @@ Components to generate (3 items each):
 10. Guarantees - Risk reversal elements
 11. Naming - Magnetic offer names
 
-CRITICAL: Generate compelling preview content that makes users want to unlock the full version with 30-50 items per component.
-
 Format as JSON with this exact structure:
 {
   "components": {
@@ -105,118 +180,24 @@ Format as JSON with this exact structure:
       "totalItemsAvailable": 12,
       "unlockCTA": "Custom urgency CTA"
     },
-    "2": {
-      "componentName": "Problems & Obstacles List",
-      "previewItems": [
-        {"title": "Problem title", "description": "Problem description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 35,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "3": {
-      "componentName": "Solutions List",
-      "previewItems": [
-        {"title": "Solution title", "description": "Solution description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 35,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "4": {
-      "componentName": "Solutions Delivery Vehicles",
-      "previewItems": [
-        {"title": "Delivery title", "description": "Delivery description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 17,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "5": {
-      "componentName": "Trim & Stack",
-      "previewItems": [
-        {"title": "Optimization title", "description": "Optimization description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 8,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "6": {
-      "componentName": "Ultimate High-Value Bundle",
-      "previewItems": [
-        {"title": "Bundle title", "description": "Bundle description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 12,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "7": {
-      "componentName": "Scarcity",
-      "previewItems": [
-        {"title": "Scarcity title", "description": "Scarcity description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 6,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "8": {
-      "componentName": "Urgency",
-      "previewItems": [
-        {"title": "Urgency title", "description": "Urgency description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 8,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "9": {
-      "componentName": "Bonuses",
-      "previewItems": [
-        {"title": "Bonus title", "description": "Bonus description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 15,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "10": {
-      "componentName": "Guarantees",
-      "previewItems": [
-        {"title": "Guarantee title", "description": "Guarantee description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 8,
-      "unlockCTA": "Custom urgency CTA"
-    },
-    "11": {
-      "componentName": "Naming",
-      "previewItems": [
-        {"title": "Name title", "description": "Name description", "value": "$X value"}
-      ],
-      "totalItemsAvailable": 6,
-      "unlockCTA": "Custom urgency CTA"
-    }
+    // ... repeat for components 2-11
   }
 }`
 
-    console.log('⚡ Making OpenAI API call...')
-    const startTime = Date.now()
-    
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Cost-efficient model for previews
+      model: 'GPT-4.1',
       messages: [
         {
           role: 'system',
-          content: SYSTEM_PROMPT,
+          content:
+            "You are an expert in Alex Hormozi's $100M Offers methodology. Generate comprehensive Grand Slam Offers using the Value Equation framework.",
         },
         { role: 'user', content: batchPrompt },
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
-      max_tokens: 5000, // Maximum allowed for high-value preview
+      max_tokens: 4000, // Increased for full response
     })
-
-    const endTime = Date.now()
-    console.log('✅ OPENAI REQUEST COMPLETE - generatePreview')
-    console.log('🎯 Actual tokens used:', completion.usage?.total_tokens || 'unknown')
-    console.log('⏱️ Request duration:', endTime - startTime, 'ms')
-    console.log('📊 Token breakdown:', {
-      prompt: completion.usage?.prompt_tokens || 'unknown',
-      completion: completion.usage?.completion_tokens || 'unknown',
-      total: completion.usage?.total_tokens || 'unknown'
-    })
-    
-    // Track this request globally
-    trackOpenAIRequest('generatePreview', completion.usage?.total_tokens || 0)
 
     const response = JSON.parse(completion.choices[0].message.content || '{}')
 
@@ -238,7 +219,7 @@ Format as JSON with this exact structure:
           totalItemsAvailable: componentData.totalItemsAvailable || 12,
           unlockCTA:
             componentData.unlockCTA ||
-            `Unlock ${(componentData.totalItemsAvailable || 12) - 3} more strategies →`,
+            `Unlock ${componentData.totalItemsAvailable - 3} more strategies →`,
         }
       } else {
         // Fallback for missing components
@@ -253,9 +234,18 @@ Format as JSON with this exact structure:
 
     return result
   } catch (error) {
-    console.error('Error in preview generation:', error)
+    console.error('Error in batch generation:', error)
     throw error
   }
+}
+
+// Optimized single component generation (fallback)
+export async function generateSingleComponent(
+  businessContext: PreviewRequest['businessContext'],
+  componentId: ComponentId
+): Promise<PreviewResponse> {
+  const request: PreviewRequest = { businessContext, componentId }
+  return generatePreview(request)
 }
 
 // Complete Grand Slam Offer Generation - Premium version
@@ -264,16 +254,8 @@ export async function generateCompleteGrandSlamOffer(
 ): Promise<import('../types').CompleteGrandSlamOffer> {
   const { businessContext, userTier, generateComplete = false } = request
 
-  console.log('🚀 OPENAI REQUEST START - generateCompleteGrandSlamOffer')
-  console.log('👤 User tier:', userTier)
-  console.log('🎯 Generate complete:', generateComplete)
-  console.log('📝 Business context length:', businessContext.businessDescription?.length || 0)
-
   try {
     const isProUser = userTier === 'pro' && generateComplete
-    
-    console.log('🔥 Is Pro User:', isProUser)
-    console.log('📊 Expected tokens:', isProUser ? '16,000 MAX' : '4,000 MAX')
 
     // Generate dynamic item counts for variation - AI will choose between 30-50 for problems and solutions
     const generateDynamicCount = (min: number, max: number) =>
@@ -617,10 +599,6 @@ Format as JSON with this EXACT structure:
 }`
 
     const startTime = Date.now()
-    
-    console.log('⚡ Making OpenAI API call for COMPLETE offer generation...')
-    console.log('🎯 Generation mode:', isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE')
-    console.log('📏 Max tokens allowed:', isProUser ? 16000 : 4000)
 
     let completion
     try {
@@ -640,26 +618,13 @@ Format as JSON with this EXACT structure:
         max_tokens: isProUser ? 16000 : 4000,
       })
     } catch (openaiError) {
-      console.error('❌ OpenAI API Error:', openaiError)
+      console.error('OpenAI API Error:', openaiError)
       throw new Error(
         `OpenAI API failed: ${openaiError instanceof Error ? openaiError.message : 'Unknown error'}`
       )
     }
 
     const endTime = Date.now()
-    
-    console.log('✅ OPENAI REQUEST COMPLETE - generateCompleteGrandSlamOffer')
-    console.log('🎯 Actual tokens used:', completion.usage?.total_tokens || 'unknown')
-    console.log('⏱️ Request duration:', endTime - startTime, 'ms')
-    console.log('📊 Token breakdown:', {
-      prompt: completion.usage?.prompt_tokens || 'unknown',
-      completion: completion.usage?.completion_tokens || 'unknown',
-      total: completion.usage?.total_tokens || 'unknown'
-    })
-    console.log('🎯 Generation type:', isProUser ? 'PRO (Full offer)' : 'FREE (Preview)')
-    
-    // Track this request globally
-    trackOpenAIRequest('generateCompleteGrandSlamOffer', completion.usage?.total_tokens || 0)
 
     // Get the raw content from OpenAI
     const rawContent = completion.choices[0].message.content || '{}'

@@ -228,6 +228,7 @@ async function processJob(jobId: string, isRegeneration: boolean = false) {
       businessContext: finalBusinessContext,
       userTier: generationTier,
       generateComplete: generationTier === 'pro',
+      offerId: job.offerId,
     })
 
     // Save the generated offer

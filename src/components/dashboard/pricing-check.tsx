@@ -166,7 +166,7 @@ export function PricingCheck({
           <div className="text-right">
             <div className="text-2xl font-bold text-slate-800">{remainingCredits}</div>
             <div className="text-sm text-slate-600">
-              {remainingCredits === 1 ? 'credit left' : 'credits left'}
+              {remainingCredits === 1 ? 'credit for new offers' : 'credits for new offers'}
             </div>
           </div>
         </div>
@@ -195,12 +195,6 @@ export function PricingCheck({
               <div className="text-sm text-violet-600">
                 Total Value: ${packageDetails.total_package_value}
               </div>
-              {packageDetails.regeneration_count !== undefined &&
-                packageDetails.regeneration_count > 0 && (
-                  <div className="text-xs text-violet-500 mt-1">
-                    + {packageDetails.regeneration_count} regenerations included
-                  </div>
-                )}
             </div>
           )}
         </div>
@@ -250,8 +244,8 @@ export function PricingCheck({
             <ul className="text-xs text-violet-600 space-y-1">
               <li>• More offers per package</li>
               <li>• Better price per offer</li>
-              <li>• Offer regeneration features</li>
               <li>• Premium PDF exports</li>
+              <li>• Priority support</li>
             </ul>
           </div>
         )}

@@ -66,6 +66,8 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'mindmap' | 'text'>('text')
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [selectedComponent, setSelectedComponent] = useState<string | undefined>(undefined)
+  const [selectedOfferId, setSelectedOfferId] = useState<string | undefined>(undefined)
+  const [selectedBusinessContext, setSelectedBusinessContext] = useState<any>(undefined)
   const [isPurchased, setIsPurchased] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
@@ -258,15 +260,46 @@ export default function DashboardPage() {
     }
   }
 
-  const handlePurchaseClick = (componentName?: string) => {
+  const handlePurchaseClick = (componentName?: string, offerId?: string, businessContext?: any) => {
     setSelectedComponent(componentName)
+    setSelectedOfferId(offerId)
+    setSelectedBusinessContext(businessContext)
     setShowPurchaseModal(true)
   }
 
-  const handlePurchaseComplete = async () => {
+  const handlePurchaseComplete = async (purchaseData?: any) => {
     setShowPurchaseModal(false)
-    setIsPacking(true)
-    setCurrentStep('packing')
+    
+    // For unlock purchases, show animation while generation happens in background
+    if (selectedOfferId && selectedBusinessContext) {
+      console.log('🎯 DASHBOARD - Starting unlock purchase with animation')
+      setIsPacking(true)
+      setCurrentStep('packing')
+      
+      // Check if we already received generated offer data from purchase-package API
+      if (purchaseData?.generatedOffer) {
+        console.log('🎯 DASHBOARD - Received generated offer from purchase-package API')
+        
+        // Convert the server response to client-safe format
+        const fullOffer: ClientCompleteGrandSlamOffer = {
+          ...purchaseData.generatedOffer,
+          _id: purchaseData.generatedOffer._id?.toString() || selectedOfferId,
+          user_id: purchaseData.generatedOffer.user_id?.toString() || user!._id,
+        }
+        
+        // Show animation for a minimum time for user experience, then show results
+        setTimeout(() => {
+          setGeneratedOffer(fullOffer)
+          setIsPurchased(true)
+          setIsPacking(false)
+          setCurrentStep('results')
+          console.log('🎯 DASHBOARD - Animation completed, showing results')
+        }, 3000) // Show animation for at least 3 seconds
+      }
+    } else {
+      // Regular upgrade, just refresh user data
+      await refreshUser()
+    }
   }
 
   const handleRealTimePackingComplete = (data: any) => {
@@ -489,12 +522,13 @@ export default function DashboardPage() {
               <GenerationAnimation businessContext={businessContext} />
             )}
 
-            {currentStep === 'packing' && generatedOffer && (
-              <RealTimePackingAnimation
-                businessContext={generatedOffer.businessContext}
-                offerId={generatedOffer._id}
-                onComplete={handleRealTimePackingComplete}
-                onError={handleRealTimePackingError}
+            {currentStep === 'packing' && (
+              <PackingAnimation
+                businessContext={selectedBusinessContext || businessContext}
+                onComplete={() => {
+                  console.log('🎯 DASHBOARD - Packing animation completed')
+                  // Animation will automatically transition to results when data is ready
+                }}
               />
             )}
 
@@ -517,6 +551,8 @@ export default function DashboardPage() {
             onClose={() => setShowPurchaseModal(false)}
             offerTitle={selectedComponent || 'Complete Offer'}
             onPurchaseComplete={handlePurchaseComplete}
+            offerId={selectedOfferId}
+            businessContext={selectedBusinessContext}
           />
         )}
 

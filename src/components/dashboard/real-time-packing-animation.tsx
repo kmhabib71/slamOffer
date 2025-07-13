@@ -92,9 +92,10 @@ export function RealTimePackingAnimation({
           },
           body: JSON.stringify({
             offerId,
-            businessContext,
+            businessContext: businessContext,
             generateComplete: true,
             userTier: 'pro',
+            componentName: undefined,
           }),
         })
 
@@ -282,7 +283,7 @@ export function RealTimePackingAnimation({
             <div className="flex items-center justify-center space-x-2 mb-6">
               <div className="w-2 h-2 bg-violet-500 rounded-full animate-pulse" />
               <span className="text-sm text-slate-600">
-                {isConnecting ? 'Connecting to AI...' : 'Generating in real-time...'}
+                {isConnecting ? 'Connecting to AI...' : 'This might take few minutes...'}
               </span>
             </div>
           )}

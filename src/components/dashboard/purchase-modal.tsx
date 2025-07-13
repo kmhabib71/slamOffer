@@ -22,7 +22,9 @@ interface PurchaseModalProps {
   isOpen: boolean
   onClose: () => void
   offerTitle: string
-  onPurchaseComplete: () => Promise<void>
+  onPurchaseComplete: (purchaseData?: any) => Promise<void>
+  offerId?: string // For unlock functionality
+  businessContext?: any // For unlock functionality
 }
 
 interface UserUsageData {
@@ -37,24 +39,22 @@ const PLANS = [
     id: 'starter_spark',
     name: 'Starter Spark',
     price: 9,
-    credits: 1,
-    regenerations: 2,
-    description: 'Perfect for single offer creation',
+    credits: 0, // 0 credits for new offers (designed for unlock purchases)
+    regenerations: 0,
+    description: 'Perfect for unlocking this specific offer',
     icon: Zap,
     gradient: 'from-blue-500 to-purple-600',
     popular: true,
     bestFor: 'Solo entrepreneurs',
     features: [
-      '1 complete offer generation',
-      '2 offer regenerations included',
-      'Same prompt, different results',
+      'Unlock this complete offer',
       'Full offer components (47+ strategies)',
       'Premium PDF export',
       'Email support',
     ],
     limitations: [
-      'No editing of original prompt for regenerations',
-      'Limited to 1 new offer creation',
+      'No additional credits for new offers',
+      'Purchase additional credits separately',
     ],
   },
   {
@@ -106,6 +106,8 @@ export function PurchaseModal({
   onClose,
   offerTitle,
   onPurchaseComplete,
+  offerId,
+  businessContext,
 }: PurchaseModalProps) {
   const [selectedPlan, setSelectedPlan] = useState('starter_spark')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -159,6 +161,9 @@ export function PurchaseModal({
             method: 'demo',
             amount: currentPlan.price,
           },
+          // Include unlock-specific data if available
+          offerId: offerId,
+          businessContext: businessContext,
         }),
       })
 
@@ -172,10 +177,14 @@ export function PurchaseModal({
 
       setPaymentSuccess(true)
 
+      // Business context is now handled in the backend during unlock purchase
+
       // Wait a moment to show success state, then trigger complete offer generation
       setTimeout(async () => {
         try {
-          await onPurchaseComplete()
+          console.log('🎯 PURCHASE MODAL - Calling onPurchaseComplete with purchase data')
+          // Pass the purchase data (including generatedOffer if available) to the callback
+          await onPurchaseComplete(data)
           onClose()
         } catch (error: any) {
           console.error('Error completing purchase:', error)
@@ -378,14 +387,6 @@ export function PurchaseModal({
                                       </div>
                                       <div className="text-xs text-slate-500">Credits</div>
                                     </div>
-                                    {plan.regenerations > 0 && (
-                                      <div className="text-center">
-                                        <div className="font-bold text-blue-600">
-                                          {plan.regenerations}
-                                        </div>
-                                        <div className="text-xs text-slate-500">Regenerations</div>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
 
@@ -463,23 +464,6 @@ export function PurchaseModal({
                         </motion.button>
                       </div>
 
-                      {/* Special Starter Spark Note */}
-                      {selectedPlan === 'starter_spark' && (
-                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-start space-x-3">
-                            <RefreshCw className="h-5 w-5 text-blue-600 mt-0.5" />
-                            <div>
-                              <p className="text-sm font-medium text-blue-800 mb-1">
-                                Starter Spark Special Feature
-                              </p>
-                              <p className="text-sm text-blue-700">
-                                You get 2 regenerations using the exact same business prompt. This
-                                gives you 3 different versions of your offer to choose from!
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
 
                       {/* Demo Notice */}
                       <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">

@@ -27,17 +27,10 @@
   - [ ] `daily_limit: 1`
   - [ ] `generations_today: 0`
 
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** 1. This is what I see when first signup:
-{"\_id":{"$oid":"68735398b27fa1ddbd23266f"},"email":"km.habibs@gmail.com","name":"Km. Habib","image":"https://lh3.googleusercontent.com/a/ACg8ocL8StFndFCVooLwk3mRlJ7m2hKTWzriR8YIn0l2M7Y3Jjnwg3DE=s96-c","emailVerified":{"$date":{"$numberLong":"1752388504302"}},"role":"user","subscription_tier":"free","credits_remaining":{"$numberInt":"3"},"total_offers_generated":{"$numberInt":"0"},"daily_generation_count":{"$numberInt":"0"},"purchased_offers_count":{"$numberInt":"0"},"created_at":{"$date":{"$numberLong":"1752388504302"}},"updated_at":{"$date":{"$numberLong":"1752388504302"}},"createdAt":{"$date":{"$numberLong":"1752388504302"}},"updatedAt":{"$date":{"$numberLong":"1752388504302"}}}
-Is it okay this inital signup with google lacks these three and still application will work fine? though don't know now what what about rest, take note for rest test aswell:
+**Result:** ✅ PASS
+**Notes:**
 
-- [ ] `credits_remaining: 3`
-  - [ ] `daily_limit: 1`
-  - [ ] `generations_today: 0`
-
-2. Is it ok after manual signup its showing login to login which is working fine or should we straight login then with signup and direct user to dashboard page?
-3. Should I add security system like "Verification code sent to your email, put it here, verify button" then give access to dashboard page else no access to dashboard, initally will it reduce user access to the platform or add later this, or if we don't add it hacker can easily create so many users from the signin and signup, we need decide it for security also user conversion rate perspective.
+1. Should I add security system like "Verification code sent to your email, put it here, verify button" then give access to dashboard page else no access to dashboard, initally will it reduce user access to the platform or add later this, or if we don't add it hacker can easily create so many users from the signin and signup, we need decide it for security also user conversion rate perspective.
 
 ### Test 1.2: Existing User Login
 
@@ -45,8 +38,7 @@ Is it okay this inital signup with google lacks these three and still applicatio
 - [ ] Verify profile data persists
 - [ ] Check dashboard shows correct tier
 
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** Do we need to update any logic or view in profile page so that it shows currect state from database, what do think is the profile page reflecting correct state now?
+**Result:** ✅ PASS
 
 ---
 
@@ -65,9 +57,7 @@ Is it okay this inital signup with google lacks these three and still applicatio
   - [ ] Basic components only
   - [ ] Background job created
 
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** Found critical issues: when add business description in dashboard its showing: "Unknown Plan
-credits left"
+**Result:** ✅ PASS
 
 ### Test 2.2: Daily Limit Check
 
@@ -75,14 +65,68 @@ credits left"
 - [ ] Verify daily limit error
 - [ ] Check no credits deducted
 
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** \***\*\_\_\_\*\***
+**Result:** ✅ PASS
 
 ### Test 2.3: Credit Exhaustion
 
 - [ ] Use all 3 free credits
 - [ ] Attempt generation with 0 credits
 - [ ] Verify error and upgrade prompt
+
+**Result:** ✅ PASS / ❌ FAIL  
+**Notes:** \***\*\_\_\_\*\***
+
+### Test 2.4: Free Offer Unlock Button Purchase Flow
+
+- [ ] **Complete Free Offer Generation (verified working):**
+  - [ ] Sign in/up as free user
+  - [ ] Generate free offer (basic version)
+  - [ ] Verify credit deduction (3 → 2)
+  - [ ] Verify profile update in database
+
+- [ ] **Test Unlock Button from Dashboard:**
+  - [ ] Locate "Unlock" button on generated free offer
+  - [ ] Click unlock button
+  - [ ] Select pricing plan (Starter Spark/Growth Engine/Agency Arsenal)
+  - [ ] Complete purchase flow
+  - [ ] **Verify instant database update:**
+    - [ ] `subscription_tier` updated immediately
+    - [ ] Credits updated according to plan
+    - [ ] No duplicate profiles created
+
+- [ ] **Test Full Offer Generation After Purchase:**
+  - [ ] After successful purchase, system should trigger full OpenAI generation
+  - [ ] Real-time packing animation should display during generation
+  - [ ] User can close browser - generation continues in background
+  - [ ] Full offer replaces free preview
+
+- [ ] **Test Unlock Button from Offer Page (/offer/:id):**
+  - [ ] Navigate to /offer/:id of free offer
+  - [ ] Click unlock button on offer page
+  - [ ] Complete same purchase flow
+  - [ ] Verify same behavior as dashboard unlock
+
+**Result:** ✅ PASS / ❌ FAIL  
+**Notes:** \***\*\_\_\_\*\***
+
+### Test 2.5: Email Notification System
+
+- [ ] **Free Offer Generation Email:**
+  - [ ] Generate free offer
+  - [ ] Verify email sent with offer link /offer/:id
+  - [ ] Check email contains correct offer ID
+
+- [ ] **Full Offer Generation Email:**
+  - [ ] Purchase plan and trigger full generation
+  - [ ] Close browser during generation
+  - [ ] Wait for generation completion
+  - [ ] Verify email sent with updated offer link
+  - [ ] Check offer link leads to full generated content
+
+- [ ] **Email Content Verification:**
+  - [ ] Subject line appropriate
+  - [ ] Offer link functional
+  - [ ] Professional formatting
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
@@ -128,22 +172,70 @@ credits left"
 
 ---
 
-## Phase 4: Generation System Testing
+## Phase 4: Plan Validation & Credit System Testing
 
-### Test 4.1: Complete Generation
+### Test 4.1: Plan Validation Before Generation
+
+- [ ] **Starter Spark Plan Validation:**
+  - [ ] User should have 1 credit for new offer generation
+  - [ ] Credit should be consumed when purchasing full offer from free preview (unlock button)
+  - [ ] After unlock purchase, user should have 0 credits for new generations
+  - [ ] 2 regenerations should be separate from credits (not displayed as credits in dashboard)
+  - [ ] Dashboard should show "0 credits" for new offers, not "2 credits"
+
+- [ ] **Growth Engine Plan Validation:**
+  - [ ] User should have 10 credits for new offer generation
+  - [ ] Credits should only be used for new complete offers
+  - [ ] No regeneration feature for this tier
+
+- [ ] **Agency Arsenal Plan Validation:**
+  - [ ] User should have 50 credits for new offer generation
+  - [ ] Credits should only be used for new complete offers
+  - [ ] No regeneration feature for this tier
+
+- [ ] **Credit vs Regeneration Distinction:**
+  - [ ] Credits = for new offer generation from scratch
+  - [ ] Regenerations = for re-creating existing offers (Starter Spark only)
+  - [ ] Dashboard should clearly distinguish between these two
+
+**Result:** ✅ PASS / ❌ FAIL  
+**Notes:** \***\*\_\_\_\*\***
+
+### Test 4.2: Database Update During Unlock Purchase
+
+- [ ] **Real-time Database Updates:**
+  - [ ] Free user clicks unlock button
+  - [ ] Selects and purchases plan
+  - [ ] Verify subscription_tier updates instantly in database
+  - [ ] Verify credits update according to purchased plan
+  - [ ] Verify purchase triggers full OpenAI generation immediately
+  - [ ] Verify no race conditions or data inconsistencies
+
+- [ ] **Generation Trigger After Purchase:**
+  - [ ] Purchase completion should automatically start full generation
+  - [ ] Should replace free preview with full offer content
+  - [ ] Background job should be created for generation
+  - [ ] User should see real-time packing animation
+
+**Result:** ✅ PASS / ❌ FAIL  
+**Notes:** \***\*\_\_\_\*\***
+
+## Phase 5: Generation System Testing
+
+### Test 5.1: Complete Generation
 
 - [ ] Login as paid user
 - [ ] Generate complete offer
 - [ ] **Verify:**
   - [ ] All premium components
   - [ ] Background processing
-  - [ ] Credit deducted
+  - [ ] Credit deducted correctly
   - [ ] Offer saved to database
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 4.2: Background Processing
+### Test 5.2: Background Processing
 
 - [ ] Start generation
 - [ ] Close browser tab immediately
@@ -154,7 +246,7 @@ credits left"
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 4.3: Generation Failure
+### Test 5.3: Generation Failure
 
 - [ ] Break OpenAI API key temporarily
 - [ ] Attempt generation
@@ -168,45 +260,73 @@ credits left"
 
 ---
 
-## Phase 5: Regeneration System Testing
+## Phase 6: Regeneration System Testing
 
-### Test 5.1: Starter Spark Regeneration
+### Test 6.1: Starter Spark Regeneration Button Placement
 
-- [ ] Login as Starter Spark user
-- [ ] Generate initial offer
-- [ ] Click "Regenerate" button
-- [ ] **Verify:**
-  - [ ] Same business context used
-  - [ ] No credit deducted
-  - [ ] Regeneration count decremented
-  - [ ] New content generated
+- [ ] **Regeneration Button Location:**
+  - [ ] Login as Starter Spark user with generated offer
+  - [ ] Navigate to full generated offer view
+  - [ ] Verify "Regenerate" button appears AFTER "Export PDF" button
+  - [ ] Button should only appear for Starter Spark users
+  - [ ] Button should only appear on full offers (not free previews)
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 5.2: Regeneration Limit
+### Test 6.2: Regeneration Functionality
 
-- [ ] Use both regenerations (2 total)
-- [ ] Verify button disabled
-- [ ] Check count = 0
+- [ ] **Regeneration Process:**
+  - [ ] Click "Regenerate" button on full offer
+  - [ ] Verify same business context/input is used
+  - [ ] Verify NO credit is deducted from user account
+  - [ ] Verify regeneration count decremented (2 → 1)
+  - [ ] Verify new content generated with different variations
+  - [ ] Verify offer ID remains the same
+  - [ ] Verify URL /offer/:id remains unchanged
+
+- [ ] **Dashboard Display:**
+  - [ ] Dashboard should NOT show regenerations as credits
+  - [ ] Should clearly separate "Credits for new offers" vs "Regenerations available"
+  - [ ] If user has 0 credits and 1 regeneration, dashboard should show "0 credits" not "1 credit"
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 5.3: Higher Tier Regeneration
+### Test 6.3: Regeneration Limit Testing
 
-- [ ] Login as Growth Engine user
-- [ ] Generate offer
-- [ ] Verify no regeneration option
+- [ ] **Use All Regenerations:**
+  - [ ] Use first regeneration (2 → 1)
+  - [ ] Use second regeneration (1 → 0)
+  - [ ] Verify "Regenerate" button becomes disabled
+  - [ ] Verify count shows 0 regenerations remaining
+  - [ ] Try to click disabled button - should show appropriate message
+
+**Result:** ✅ PASS / ❌ FAIL  
+**Notes:** \***\*\_\_\_\*\***
+
+### Test 6.4: Higher Tier Regeneration Verification
+
+- [ ] **Growth Engine Users:**
+  - [ ] Login as Growth Engine user
+  - [ ] Generate full offer
+  - [ ] Verify NO regeneration button appears
+  - [ ] Verify no regeneration count in profile
+
+- [ ] **Agency Arsenal Users:**
+  - [ ] Login as Agency Arsenal user
+  - [ ] Generate full offer
+  - [ ] Verify NO regeneration button appears
+  - [ ] Verify no regeneration count in profile
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
 ---
 
-## Phase 6: Database Integrity Testing
+## Phase 7: Database Integrity Testing
 
-### Test 6.1: Concurrent Operations
+### Test 7.1: Concurrent Operations
 
 - [ ] Open multiple browser tabs
 - [ ] Login as same user
@@ -216,54 +336,73 @@ credits left"
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 6.2: Data Consistency
+### Test 7.2: Data Consistency
 
 - [ ] Check database directly:
   - [ ] No negative credits
   - [ ] Proper tier assignments
   - [ ] Accurate generation counts
   - [ ] Valid timestamps
+  - [ ] Regeneration counts separate from credits
+  - [ ] Proper subscription_tier values
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
 ---
 
-## Phase 7: UI/UX Testing
+## Phase 8: UI/UX Testing
 
-### Test 7.1: Tier-Specific UI
+### Test 8.1: Tier-Specific UI
 
-- [ ] **Free:** Basic features, upgrade prompts
-- [ ] **Starter Spark:** Regeneration buttons, credit display
-- [ ] **Growth Engine:** Full features, no regeneration
-- [ ] **Agency Arsenal:** Full features, high credits
+- [ ] **Free:** 
+  - [ ] Basic features, upgrade prompts
+  - [ ] Unlock buttons on free offers
+  - [ ] Credit display shows correctly
+
+- [ ] **Starter Spark:** 
+  - [ ] Regeneration buttons ONLY after Export PDF
+  - [ ] Credit display separate from regeneration count
+  - [ ] Shows "X credits for new offers" and "X regenerations available"
+
+- [ ] **Growth Engine:** 
+  - [ ] Full features, no regeneration buttons
+  - [ ] High credit display
+  - [ ] No regeneration UI elements
+
+- [ ] **Agency Arsenal:** 
+  - [ ] Full features, no regeneration buttons
+  - [ ] Highest credit display
+  - [ ] No regeneration UI elements
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 7.2: Real-Time Updates
+### Test 8.2: Real-Time Updates
 
 - [ ] Keep dashboard open
 - [ ] Perform operations in another tab
 - [ ] Verify automatic updates
+- [ ] Verify instant database reflection for unlock purchases
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 7.3: Mobile Responsiveness
+### Test 8.3: Mobile Responsiveness
 
 - [ ] Test on mobile device
 - [ ] Verify all features work
 - [ ] Check responsive design
+- [ ] Test unlock button functionality on mobile
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
 ---
 
-## Phase 8: Performance Testing
+## Phase 9: Performance Testing
 
-### Test 8.1: Load Testing
+### Test 9.1: Load Testing
 
 - [ ] Create multiple test users
 - [ ] Simulate concurrent operations
@@ -272,7 +411,7 @@ credits left"
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 8.2: Generation Speed
+### Test 9.2: Generation Speed
 
 - [ ] Time generation processes
 - [ ] Verify reasonable completion times
@@ -283,9 +422,9 @@ credits left"
 
 ---
 
-## Phase 9: Error Handling Testing
+## Phase 10: Error Handling Testing
 
-### Test 9.1: Network Failures
+### Test 10.1: Network Failures
 
 - [ ] Simulate network interruptions
 - [ ] Test offline/online scenarios
@@ -294,7 +433,7 @@ credits left"
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 9.2: Invalid Data
+### Test 10.2: Invalid Data
 
 - [ ] Submit invalid form data
 - [ ] Test edge cases
@@ -305,9 +444,9 @@ credits left"
 
 ---
 
-## Phase 10: Security Testing
+## Phase 11: Security Testing
 
-### Test 10.1: Authentication Security
+### Test 11.1: Authentication Security
 
 - [ ] Test unauthorized access attempts
 - [ ] Verify session management
@@ -316,7 +455,7 @@ credits left"
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 10.2: Data Protection
+### Test 11.2: Data Protection
 
 - [ ] Verify user data isolation
 - [ ] Test API endpoint security

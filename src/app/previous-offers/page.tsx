@@ -21,6 +21,7 @@ import { OfferResults } from '@/components/dashboard/offer-results'
 import { AuthGuard } from '@/components/auth/auth-guard'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'
 import { GenerationAnimation } from '@/components/dashboard/generation-animation'
+import { PackingAnimation } from '@/components/dashboard/packing-animation'
 import { DashboardNavigation } from '@/components/dashboard/dashboard-navigation'
 import { fetchWithAuth } from '@/utils/fetchWithAuth'
 
@@ -165,7 +166,13 @@ export default function PreviousOffersPage() {
     if (isGenerating) {
       return (
         <AuthGuard>
-          <GenerationAnimation businessContext={selectedOffer.offer_data.businessContext} />
+          <PackingAnimation 
+            businessContext={selectedOffer.offer_data.businessContext} 
+            onComplete={() => {
+              console.log('🎯 PREVIOUS OFFERS - Packing animation completed')
+              // Animation will automatically hide when data is ready
+            }}
+          />
         </AuthGuard>
       )
     }
@@ -241,36 +248,36 @@ export default function PreviousOffersPage() {
                 setPurchaseError(null)
               }}
               offerTitle={selectedComponent || selectedOffer.title}
-              onPurchaseComplete={async () => {
+              onPurchaseComplete={async (purchaseData?: any) => {
                 try {
                   setIsPurchaseModalOpen(false)
                   setIsGenerating(true)
                   setPurchaseError(null)
 
-                  const response = await fetchWithAuth('/api/purchase-offer', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      offerId: selectedOffer.id,
-                      businessContext: selectedOffer.offer_data.businessContext,
-                      generateComplete: true,
-                      userTier: 'pro',
-                      componentName: selectedComponent,
-                    }),
-                  })
-
-                  const data = await response.json()
-
-                  if (!response.ok) {
-                    throw new Error(data.error || 'Failed to process purchase')
+                  console.log('🎯 PREVIOUS OFFERS (VIEW) - Purchase completed, checking for generated offer data')
+                  
+                  // For unlock purchases, the purchase-package API already handles generation
+                  // Check if we received generated offer data from the purchase
+                  if (purchaseData?.generatedOffer) {
+                    console.log('🎯 PREVIOUS OFFERS (VIEW) - Received generated offer from purchase-package API')
+                    
+                    // Show animation for minimum time, then update data
+                    setTimeout(() => {
+                      // Update the selected offer with the new data from purchase-package API
+                      setSelectedOffer(prev => (prev ? { 
+                        ...prev, 
+                        offer_data: purchaseData.generatedOffer 
+                      } : null))
+                      
+                      setIsGenerating(false)
+                      setSelectedComponent(null)
+                      console.log('🎯 PREVIOUS OFFERS (VIEW) - Offer updated successfully with generated data')
+                    }, 3000) // Show animation for at least 3 seconds
+                  } else {
+                    console.log('⚠️ PREVIOUS OFFERS (VIEW) - No generated offer data received')
+                    setIsGenerating(false)
+                    setSelectedComponent(null)
                   }
-
-                  // Update the selected offer with the new data
-                  setSelectedOffer(prev => (prev ? { ...prev, offer_data: data.data } : null))
-                  setIsGenerating(false)
-                  setSelectedComponent(null)
                 } catch (error) {
                   console.error('Purchase error:', error)
                   setPurchaseError(
@@ -514,7 +521,7 @@ export default function PreviousOffersPage() {
                   setPurchaseError(null)
                 }}
                 offerTitle={selectedOfferForPurchase.title}
-                onPurchaseComplete={async () => {
+                onPurchaseComplete={async (purchaseData?: any) => {
                   if (!selectedOfferForPurchase) return
 
                   try {
@@ -522,33 +529,32 @@ export default function PreviousOffersPage() {
                     setIsGenerating(true)
                     setPurchaseError(null)
 
-                    const response = await fetchWithAuth('/api/purchase-offer', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        offerId: selectedOfferForPurchase.id,
-                        businessContext: selectedOfferForPurchase.offer_data.businessContext,
-                        generateComplete: true,
-                        userTier: 'pro',
-                      }),
-                    })
+                    console.log('🎯 PREVIOUS OFFERS (UNLOCK) - Purchase completed, checking for generated offer data')
+                    
+                    // For unlock purchases, the purchase-package API already handles generation
+                    // Check if we received generated offer data from the purchase
+                    if (purchaseData?.generatedOffer) {
+                      console.log('🎯 PREVIOUS OFFERS (UNLOCK) - Received generated offer from purchase-package API')
+                      
+                      // Show minimal animation time, then complete
+                      setTimeout(() => {
+                        // Update purchased offers set
+                        setPurchasedOffers(prev => new Set([...prev, selectedOfferForPurchase.id]))
 
-                    const data = await response.json()
-
-                    if (!response.ok) {
-                      throw new Error(data.error || 'Failed to process purchase')
+                        // Open the offer in edit mode
+                        window.open(`/offer/${selectedOfferForPurchase.id}?edit=true`, '_blank')
+                        
+                        setSelectedOfferForPurchase(null)
+                        setIsGenerating(false)
+                        console.log('🎯 PREVIOUS OFFERS (UNLOCK) - Purchase completed successfully')
+                      }, 2000) // Shorter animation for this flow since opening new tab
+                    } else {
+                      console.log('⚠️ PREVIOUS OFFERS (UNLOCK) - No generated offer data received')
+                      // Still mark as purchased for regular package purchases
+                      setPurchasedOffers(prev => new Set([...prev, selectedOfferForPurchase.id]))
+                      setSelectedOfferForPurchase(null)
+                      setIsGenerating(false)
                     }
-
-                    // Update purchased offers set
-                    setPurchasedOffers(prev => new Set([...prev, selectedOfferForPurchase.id]))
-
-                    // Open the offer in edit mode
-                    window.open(`/offer/${selectedOfferForPurchase.id}?edit=true`, '_blank')
-
-                    setSelectedOfferForPurchase(null)
-                    setIsGenerating(false)
                   } catch (error) {
                     console.error('Purchase error:', error)
                     setPurchaseError(

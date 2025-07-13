@@ -47,9 +47,7 @@ interface OfferTextViewProps {
 
 interface UserUsageData {
   can_generate: boolean
-  can_regenerate: boolean
   remaining_credits: number
-  regenerations_remaining: number
   subscription_tier: string
   daily_remaining?: number
 }
@@ -112,7 +110,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
   // Enhanced state management
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isRegenerating, setIsRegenerating] = useState(false)
   const [purchasedOffer, setPurchasedOffer] = useState<ClientSafeOffer | null>(null)
   const [expandedComponents, setExpandedComponents] = useState<Set<number>>(new Set())
   const [isPDFGenerating, setIsPDFGenerating] = useState(false)
@@ -154,7 +151,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
     user?.profile?.subscription_tier !== 'free' ||
     isPurchased ||
     usageData?.subscription_tier !== 'free'
-  const isStarterSpark = usageData?.subscription_tier === 'starter_spark'
   const isFullOffer = isPro
 
   const handlePurchaseClick = () => {
@@ -211,40 +207,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
     }
   }
 
-  const handleRegenerate = async () => {
-    if (!isStarterSpark || !usageData?.can_regenerate) return
-
-    setIsRegenerating(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/regenerate-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          offerId: offer._id,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to regenerate offer')
-      }
-
-      const data = await response.json()
-      setPurchasedOffer(data.data)
-
-      // Refresh usage data after regeneration
-      await fetchUsageData()
-    } catch (error) {
-      console.error('Regeneration error:', error)
-      setError(error instanceof Error ? error.message : 'Regeneration failed')
-    } finally {
-      setIsRegenerating(false)
-    }
-  }
 
   // Show generation animation while processing
   if (isGenerating) {
@@ -433,21 +395,6 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 </div>
               </div>
 
-              {/* Regeneration Button for Starter Spark */}
-              {isStarterSpark && usageData.regenerations_remaining > 0 && (
-                <button
-                  onClick={handleRegenerate}
-                  disabled={isRegenerating || !usageData.can_regenerate}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-                  <span>
-                    {isRegenerating
-                      ? 'Regenerating...'
-                      : `Regenerate (${usageData.regenerations_remaining} left)`}
-                  </span>
-                </button>
-              )}
             </div>
           </motion.div>
         )}
@@ -470,7 +417,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                 {displayOffer.businessContext.businessDescription}
               </p>
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center space-x-3">
               <button
                 onClick={isPro ? handlePDFExport : () => setPurchaseModalOpen(true)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
@@ -502,6 +449,7 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
                   </>
                 )}
               </button>
+
             </div>
           </div>
         </motion.div>

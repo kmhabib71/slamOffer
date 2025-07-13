@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
 import { generateCompleteGrandSlamOffer } from '@/lib/openai'
 import { authService, dbHelpers } from '@/lib/auth'
+import { emailService } from '@/lib/email-service'
+import clientPromise from '@/lib/mongodb'
 
 export const dynamic = 'force-dynamic'
 
@@ -167,16 +169,41 @@ export async function POST(request: Request) {
       }
     }
 
+    // Check for existing generation to prevent duplicates
+    const client = await clientPromise
+    const db = client.db()
+    const generationLock = await db.collection('generation_locks').findOne({
+      offerId,
+      userId,
+      status: 'in_progress',
+    })
+
+    if (generationLock) {
+      return NextResponse.json(
+        { error: 'Generation already in progress for this offer' },
+        { status: 429 }
+      )
+    }
+
+    // Create generation lock
+    await db.collection('generation_locks').insertOne({
+      offerId,
+      userId,
+      status: 'in_progress',
+      created_at: new Date(),
+    })
+
     // Generate the offer
     let completeOffer
     try {
-      console.log('Starting AI generation with tier:', generationTier)
+      console.log('🎯 ROUTE: purchase-offer - About to call generateCompleteGrandSlamOffer')
+      console.log('📊 User:', userId, 'Offer:', offerId, 'Tier:', generationTier)
 
       completeOffer = await generateCompleteGrandSlamOffer({
         businessContext: finalBusinessContext,
         userTier: generationTier,
         generateComplete: generationTier !== 'free', // Free users get limited content
-        componentName,
+        offerId: offerId,
       })
 
       console.log('AI generation completed successfully')
@@ -193,6 +220,17 @@ export async function POST(request: Request) {
         } catch (refundError) {
           console.error('Error refunding credits:', refundError)
         }
+      }
+
+      // Clean up generation lock on error
+      try {
+        await db.collection('generation_locks').deleteOne({
+          offerId,
+          userId,
+          status: 'in_progress',
+        })
+      } catch (cleanupError) {
+        console.error('Error cleaning up generation lock:', cleanupError)
       }
 
       return NextResponse.json(
@@ -264,6 +302,32 @@ export async function POST(request: Request) {
 
     // Get regeneration status for response
     const regenerationStatus = await authService.getRegenerationStatus(userId)
+
+    // Send email notification for offer generation completion
+    try {
+      await emailService.sendOfferGenerationComplete({
+        userEmail: session.user.email!,
+        userName: session.user.name || '',
+        offerId: offerId,
+        offerTitle: `Grand Slam Offer for ${businessContext.businessDescription?.substring(0, 50)}...`,
+        isFullGeneration: generateComplete,
+        businessDescription: businessContext.businessDescription || '',
+      })
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError)
+      // Don't fail the request if email fails
+    }
+
+    // Clean up generation lock on success
+    try {
+      await db.collection('generation_locks').deleteOne({
+        offerId,
+        userId,
+        status: 'in_progress',
+      })
+    } catch (cleanupError) {
+      console.error('Error cleaning up generation lock:', cleanupError)
+    }
 
     return NextResponse.json({
       success: true,

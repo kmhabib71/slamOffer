@@ -118,7 +118,7 @@ test gso too with the prompt below, the prompt is short in real it will be longe
 
 find and kill 3000 in windows:
 
-PS D:\Projects\Grand-offer\slamOffer> netstat -aon | findstr :3000
+netstat -aon | findstr :3000
 TCP [::1]:3000 [::]:0 LISTENING 8884
 TCP [::1]:3000 [::1]:63971 ESTABLISHED 8884
 TCP [::1]:3000 [::1]:64044 TIME_WAIT 0

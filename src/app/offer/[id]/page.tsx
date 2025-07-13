@@ -9,6 +9,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Lock, Share2, Eye, EyeOff, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import { PurchaseModal } from '@/components/dashboard/purchase-modal'
+import { PackingAnimation } from '@/components/dashboard/packing-animation'
 import { fetchWithAuth } from '@/utils/fetchWithAuth'
 
 type ClientCompleteGrandSlamOffer = {
@@ -43,6 +44,7 @@ export default function OfferDetailPage() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
+  const [showPackingAnimation, setShowPackingAnimation] = useState(false)
 
   useEffect(() => {
     const fetchOffer = async () => {
@@ -141,51 +143,50 @@ export default function OfferDetailPage() {
     }
   }
 
-  const handlePurchaseComplete = async () => {
+  const handlePurchaseComplete = async (purchaseData?: any) => {
     if (!offer) return
 
     try {
       setShowPurchaseModal(false)
+      setShowPackingAnimation(true)
       setIsGenerating(true)
       setPurchaseError(null)
 
-      const response = await fetchWithAuth('/api/purchase-offer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          offerId: offer._id,
-          businessContext: offer.businessContext,
-          generateComplete: true,
-          userTier: 'pro',
-        }),
-      })
+      console.log('🎯 OFFER PAGE - Purchase completed, checking for generated offer data')
+      
+      // For unlock purchases, the purchase-package API already handles generation
+      // Check if we received generated offer data from the purchase
+      if (purchaseData?.generatedOffer) {
+        console.log('🎯 OFFER PAGE - Received generated offer from purchase-package API')
+        
+        // Show animation for a minimum time for user experience
+        setTimeout(() => {
+          // Update the offer with the full version from purchase-package API
+          const updatedOffer: ClientCompleteGrandSlamOffer = {
+            ...purchaseData.generatedOffer,
+            _id: purchaseData.generatedOffer._id?.toString() || offer._id,
+            user_id: purchaseData.generatedOffer.user_id?.toString() || offer.user_id,
+            businessContext: purchaseData.generatedOffer.businessContext || offer.businessContext,
+            isPublic: offer.isPublic,
+          }
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process purchase')
+          setOffer(updatedOffer)
+          setIsPurchased(true)
+          setIsGenerating(false)
+          setShowPackingAnimation(false)
+          
+          console.log('🎯 OFFER PAGE - Offer updated successfully with generated data')
+        }, 3000) // Show animation for at least 3 seconds
+      } else {
+        console.log('⚠️ OFFER PAGE - No generated offer data received, this might be a regular package purchase')
+        setIsGenerating(false)
+        setShowPackingAnimation(false)
       }
-
-      // Update the offer with the full version
-      const updatedOffer: ClientCompleteGrandSlamOffer = {
-        ...data.data.offer_data,
-        _id: data.data.id || data.data._id?.toString() || '',
-        user_id: data.data.user_id?.toString() || '',
-        businessContext: data.data.offer_data?.businessContext || {
-          businessDescription: data.data.business_description || '',
-        },
-        isPublic: data.data.isPublic,
-      }
-
-      setOffer(updatedOffer)
-      setIsPurchased(true)
-      setIsGenerating(false)
     } catch (error) {
       console.error('Purchase error:', error)
       setPurchaseError(error instanceof Error ? error.message : 'Failed to process purchase')
       setIsGenerating(false)
+      setShowPackingAnimation(false)
       setShowPurchaseModal(true)
     }
   }
@@ -302,6 +303,21 @@ export default function OfferDetailPage() {
             </Link>
           </div>
         </div>
+      </AuthGuard>
+    )
+  }
+
+  // Show packing animation if purchase is in progress
+  if (showPackingAnimation) {
+    return (
+      <AuthGuard>
+        <PackingAnimation
+          businessContext={offer.businessContext}
+          onComplete={() => {
+            console.log('🎯 OFFER PAGE - Packing animation completed')
+            // Animation will automatically hide when data is ready
+          }}
+        />
       </AuthGuard>
     )
   }
