@@ -829,6 +829,97 @@ export function OfferTextView({ offer, onPurchaseClick, isPurchased }: OfferText
           })}
         </div>
 
+        {/* Grand Unlock Card for Free Users */}
+        {!isFullOffer && !isPurchased && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-12 mb-8"
+          >
+            <div className="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl border-2 border-violet-200 p-8 text-center shadow-xl">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Crown className="h-8 w-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-800 mb-2">
+                  Unlock Your Complete Grand Slam Offer
+                </h2>
+                <p className="text-lg text-slate-600 mb-4">
+                  Get access to all {displayOffer.components.reduce((sum, comp) => sum + getRealisticItemCount(comp.componentId), 0)} strategies across all components
+                </p>
+              </div>
+
+              {/* Pricing */}
+              <div className="mb-6">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <span className="text-4xl font-bold text-violet-600">$9</span>
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+                      Launch Time Offer
+                    </div>
+                    <div className="text-sm text-slate-500 line-through">Regular Price $19</div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600">One-time payment • Instant access</p>
+              </div>
+
+              {/* Features */}
+              <div className="grid md:grid-cols-3 gap-4 mb-8 text-left">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-slate-800">Complete Offer System</div>
+                    <div className="text-sm text-slate-600">All 11 components fully unlocked</div>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-slate-800">Premium PDF Export</div>
+                    <div className="text-sm text-slate-600">Professional formatted document</div>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-slate-800">2 Regenerations</div>
+                    <div className="text-sm text-slate-600">Get different variations</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => handlePurchaseClick()}
+                className="bg-gradient-to-r from-violet-600 to-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-violet-700 hover:to-purple-800 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 mx-auto"
+              >
+                <Crown className="h-6 w-6" />
+                <span>Unlock Complete Offer - $9</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+
+              {/* Trust Indicators */}
+              <div className="mt-6 pt-6 border-t border-violet-200">
+                <div className="flex items-center justify-center gap-6 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-emerald-500" />
+                    <span>Secure Payment</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-yellow-500" />
+                    <span>Instant Access</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-violet-500" />
+                    <span>Alex Hormozi Method</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Add Purchase Modal */}
         <PurchaseModal
           isOpen={purchaseModalOpen}

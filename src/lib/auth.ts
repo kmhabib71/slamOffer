@@ -15,6 +15,8 @@ export interface UserProfile {
   credits_used?: number
   last_generation_date?: Date
   daily_generation_count?: number
+  generations_today?: number // For manual testing compatibility
+  daily_limit?: number // Free tier daily limit
   purchased_offers_count?: number
 
   // Enhanced pricing structure fields
@@ -124,6 +126,8 @@ export const authService = {
         credits_remaining: 3, // Free tier gets 3 total generations
         total_offers_generated: 0,
         daily_generation_count: 0,
+        generations_today: 0, // Add this field for manual testing compatibility
+        daily_limit: 1, // Free tier daily limit
         purchased_offers_count: 0,
         daily_usage: [],
         generation_history: [],
@@ -375,13 +379,18 @@ export const authService = {
       ]
       const trimmedHistory = newHistory.slice(-100)
 
-      // Atomic update with all changes
+      // Calculate daily generation count for today
+      const todayGenerations = filteredUsage.find(usage => usage.date === today)?.count || 0
+      
+      // Atomic update with all changes including daily tracking
       const result = await db.collection('user_profiles').updateOne(updateQuery, {
         $set: {
           credits_remaining: newCredits,
           daily_usage: filteredUsage,
           generation_history: trimmedHistory,
           last_generation_date: new Date(),
+          daily_generation_count: todayGenerations,
+          generations_today: todayGenerations,
           updated_at: new Date(),
         },
       })

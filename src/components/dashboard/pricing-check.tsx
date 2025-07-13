@@ -66,7 +66,18 @@ export function PricingCheck({
         }
 
         const data = await response.json()
-        setUsageData(data)
+        
+        // Transform the API response to match our expected interface
+        const transformedData: UsageData = {
+          canGenerate: data.generation.can_generate,
+          reason: data.generation.generation_reason,
+          remainingCredits: data.generation.remaining_credits,
+          subscriptionTier: data.profile.subscription_tier,
+          dailyUsageCount: data.usage.today.count || 0,
+          packageDetails: data.profile.package_details,
+        }
+        
+        setUsageData(transformedData)
       } catch (err) {
         console.error('Error checking usage:', err)
         setError(err instanceof Error ? err.message : 'Failed to check usage')

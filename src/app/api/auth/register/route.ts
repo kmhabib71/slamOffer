@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
       credits_remaining: 3,
       total_offers_generated: 0,
       daily_generation_count: 0,
+      daily_limit: 1,
+      generations_today: 0,
       purchased_offers_count: 0,
       // Timestamps (both formats for compatibility)
       created_at: now,

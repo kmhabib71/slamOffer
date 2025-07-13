@@ -1,8 +1,8 @@
 # Manual Testing Checklist - Grand Slam Offer Application
 
-**Date:** ****\_\_\_****  
-**Tester:** ****\_\_\_****  
-**Environment:** ****\_\_\_****
+**Date:** \***\*\_\_\_\*\***  
+**Tester:** \***\*\_\_\_\*\***  
+**Environment:** \***\*\_\_\_\*\***
 
 ## Pre-Testing Setup ✅
 
@@ -28,7 +28,16 @@
   - [ ] `generations_today: 0`
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** 1. This is what I see when first signup:
+{"\_id":{"$oid":"68735398b27fa1ddbd23266f"},"email":"km.habibs@gmail.com","name":"Km. Habib","image":"https://lh3.googleusercontent.com/a/ACg8ocL8StFndFCVooLwk3mRlJ7m2hKTWzriR8YIn0l2M7Y3Jjnwg3DE=s96-c","emailVerified":{"$date":{"$numberLong":"1752388504302"}},"role":"user","subscription_tier":"free","credits_remaining":{"$numberInt":"3"},"total_offers_generated":{"$numberInt":"0"},"daily_generation_count":{"$numberInt":"0"},"purchased_offers_count":{"$numberInt":"0"},"created_at":{"$date":{"$numberLong":"1752388504302"}},"updated_at":{"$date":{"$numberLong":"1752388504302"}},"createdAt":{"$date":{"$numberLong":"1752388504302"}},"updatedAt":{"$date":{"$numberLong":"1752388504302"}}}
+Is it okay this inital signup with google lacks these three and still application will work fine? though don't know now what what about rest, take note for rest test aswell:
+
+- [ ] `credits_remaining: 3`
+  - [ ] `daily_limit: 1`
+  - [ ] `generations_today: 0`
+
+2. Is it ok after manual signup its showing login to login which is working fine or should we straight login then with signup and direct user to dashboard page?
+3. Should I add security system like "Verification code sent to your email, put it here, verify button" then give access to dashboard page else no access to dashboard, initally will it reduce user access to the platform or add later this, or if we don't add it hacker can easily create so many users from the signin and signup, we need decide it for security also user conversion rate perspective.
 
 ### Test 1.2: Existing User Login
 
@@ -37,7 +46,7 @@
 - [ ] Check dashboard shows correct tier
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** Do we need to update any logic or view in profile page so that it shows currect state from database, what do think is the profile page reflecting correct state now?
 
 ---
 
@@ -57,7 +66,8 @@
   - [ ] Background job created
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** Found critical issues: when add business description in dashboard its showing: "Unknown Plan
+credits left"
 
 ### Test 2.2: Daily Limit Check
 
@@ -66,7 +76,7 @@
 - [ ] Check no credits deducted
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 2.3: Credit Exhaustion
 
@@ -75,7 +85,7 @@
 - [ ] Verify error and upgrade prompt
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -94,7 +104,7 @@
   - [ ] No duplicate profiles
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 3.2: Direct Purchase
 
@@ -104,7 +114,7 @@
 - [ ] Check 10 credits available
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 3.3: Purchase Validation
 
@@ -114,7 +124,7 @@
 - [ ] Verify appropriate handling
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -131,7 +141,7 @@
   - [ ] Offer saved to database
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 4.2: Background Processing
 
@@ -142,7 +152,7 @@
 - [ ] Check for completed offer
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 4.3: Generation Failure
 
@@ -154,7 +164,7 @@
   - [ ] Job marked as failed
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -172,7 +182,7 @@
   - [ ] New content generated
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 5.2: Regeneration Limit
 
@@ -181,7 +191,7 @@
 - [ ] Check count = 0
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 5.3: Higher Tier Regeneration
 
@@ -190,7 +200,7 @@
 - [ ] Verify no regeneration option
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -204,7 +214,7 @@
 - [ ] Verify no race conditions
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 6.2: Data Consistency
 
@@ -215,7 +225,7 @@
   - [ ] Valid timestamps
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -229,7 +239,7 @@
 - [ ] **Agency Arsenal:** Full features, high credits
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 7.2: Real-Time Updates
 
@@ -238,7 +248,7 @@
 - [ ] Verify automatic updates
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 7.3: Mobile Responsiveness
 
@@ -247,7 +257,7 @@
 - [ ] Check responsive design
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -260,7 +270,7 @@
 - [ ] Monitor system performance
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 8.2: Generation Speed
 
@@ -269,7 +279,7 @@
 - [ ] Check background job efficiency
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -282,7 +292,7 @@
 - [ ] Verify graceful degradation
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 9.2: Invalid Data
 
@@ -291,7 +301,7 @@
 - [ ] Verify validation works
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -304,7 +314,7 @@
 - [ ] Check route protection
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ### Test 10.2: Data Protection
 
@@ -313,7 +323,7 @@
 - [ ] Check for data leaks
 
 **Result:** ✅ PASS / ❌ FAIL  
-**Notes:** ****\_\_\_****
+**Notes:** \***\*\_\_\_\*\***
 
 ---
 
@@ -344,6 +354,6 @@
 
 ---
 
-**Tester Signature:** ****\_\_\_****  
-**Date Completed:** ****\_\_\_****  
+**Tester Signature:** \***\*\_\_\_\*\***  
+**Date Completed:** \***\*\_\_\_\*\***  
 **Approved for Production:** ✅ YES / ❌ NO

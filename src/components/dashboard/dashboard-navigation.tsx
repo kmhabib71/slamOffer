@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/providers/auth-provider'
 import { motion } from 'framer-motion'
-import { Sparkles, Zap, FolderOpen, User, HelpCircle, LogOut, Menu, X } from 'lucide-react'
+import { Sparkles, Zap, FolderOpen, User, HelpCircle, LogOut, Menu, X, Database, AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
+import { DatabaseCleanup } from '@/components/testing/database-cleanup'
 
 interface DashboardNavigationProps {
   excludeItems?: string[]
@@ -14,6 +15,7 @@ export function DashboardNavigation({ excludeItems = [] }: DashboardNavigationPr
   const router = useRouter()
   const { user, signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showDatabaseCleanup, setShowDatabaseCleanup] = useState(false) // TESTING ONLY
 
   const allNavItems = [
     {
@@ -97,6 +99,19 @@ export function DashboardNavigation({ excludeItems = [] }: DashboardNavigationPr
               )
             })}
 
+            {/* TESTING ONLY - Database Cleanup Button */}
+            <motion.button
+              onClick={() => setShowDatabaseCleanup(!showDatabaseCleanup)}
+              className="flex items-center space-x-2 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 font-medium group border border-red-200"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              title="🚨 TESTING ONLY - Database Cleanup (REMOVE BEFORE PRODUCTION)"
+            >
+              <AlertTriangle className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <Database className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <span className="text-xs">TEST</span>
+            </motion.button>
+
             {/* Logout Button */}
             <motion.button
               onClick={handleLogout}
@@ -149,13 +164,31 @@ export function DashboardNavigation({ excludeItems = [] }: DashboardNavigationPr
                 )
               })}
 
+              {/* TESTING ONLY - Mobile Database Cleanup Button */}
+              <motion.button
+                onClick={() => setShowDatabaseCleanup(!showDatabaseCleanup)}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium text-left border border-red-200 mb-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: navItems.length * 0.1 }}
+              >
+                <div className="flex space-x-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  <Database className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold">🚨 TESTING ONLY</div>
+                  <div className="text-xs text-red-500">Database Cleanup</div>
+                </div>
+              </motion.button>
+
               {/* Mobile Logout */}
               <motion.button
                 onClick={handleLogout}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium text-left border-t border-slate-200 mt-2 pt-3"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navItems.length * 0.1 }}
+                transition={{ delay: (navItems.length + 1) * 0.1 }}
               >
                 <LogOut className="h-4 w-4" />
                 <div>
@@ -167,6 +200,20 @@ export function DashboardNavigation({ excludeItems = [] }: DashboardNavigationPr
           </motion.div>
         )}
       </nav>
+
+      {/* TESTING ONLY - Database Cleanup Component */}
+      {showDatabaseCleanup && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="border-t border-red-200 bg-red-25"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <DatabaseCleanup />
+          </div>
+        </motion.div>
+      )}
     </motion.header>
   )
 }

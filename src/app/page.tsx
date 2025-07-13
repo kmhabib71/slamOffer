@@ -600,9 +600,15 @@ export default function Home() {
           },
         ]
       : [
+          // {
+          //   label: 'Login',
+          //   onClick: handleSignInClick,
+          //   type: 'button' as const,
+          //   icon: LogIn,
+          // },
           {
             label: 'Login',
-            onClick: handleSignInClick,
+            href: '/auth/login',
             type: 'button' as const,
             icon: LogIn,
           },

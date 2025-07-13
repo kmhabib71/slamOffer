@@ -98,12 +98,75 @@ export async function POST(request: Request) {
       currentTier: userProfile.subscription_tier,
     })
 
-    // Check if user is already on this or a higher tier
+    // Handle same-tier repurchase (credit top-up)
     if (userProfile.subscription_tier === packageType) {
-      return NextResponse.json(
-        { error: `You already have the ${packageType} package` },
-        { status: 400 }
-      )
+      console.log('Same tier repurchase detected - adding credits:', {
+        userId,
+        currentTier: packageType,
+        currentCredits: userProfile.credits_remaining,
+        additionalCredits: selectedPackage.credits,
+      })
+
+      // Add credits to existing balance
+      const newCreditBalance = userProfile.credits_remaining + selectedPackage.credits
+
+      try {
+        // Update user profile with additional credits
+        await authService.updateUserProfile(userId, {
+          credits_remaining: newCreditBalance,
+          // Update package details to reflect additional purchase
+          package_details: {
+            ...userProfile.package_details,
+            total_package_value: (userProfile.package_details?.total_package_value || 0) + selectedPackage.total_package_value,
+            purchase_date: new Date(), // Update to latest purchase date
+          },
+        })
+
+        // Get updated profile to return
+        const updatedProfile = await authService.getUserProfile(userId)
+
+        if (!updatedProfile) {
+          throw new Error('Failed to retrieve updated profile')
+        }
+
+        console.log('Successfully added credits to existing plan:', {
+          userId,
+          previousCredits: userProfile.credits_remaining,
+          newCredits: newCreditBalance,
+          creditsAdded: selectedPackage.credits,
+        })
+
+        return NextResponse.json({
+          success: true,
+          message: `Successfully added ${selectedPackage.credits} credits to your ${packageType} plan`,
+          profile: updatedProfile,
+          package: {
+            name: packageType,
+            tier: packageType,
+            credits: newCreditBalance,
+            price: selectedPackage.price,
+            pricePerOffer: selectedPackage.price_per_offer,
+            features: selectedPackage.features,
+            description: selectedPackage.description,
+            regenerations: selectedPackage.regeneration_count,
+          },
+          topUp: {
+            creditsAdded: selectedPackage.credits,
+            previousCredits: userProfile.credits_remaining,
+            newTotalCredits: newCreditBalance,
+            purchaseType: 'credit_top_up',
+          },
+        })
+      } catch (error) {
+        console.error('Error adding credits to existing plan:', error)
+        return NextResponse.json(
+          {
+            error: 'Failed to add credits to existing plan',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          },
+          { status: 500 }
+        )
+      }
     }
 
     // Handle upgrade logic - preserve existing credits for upgrades

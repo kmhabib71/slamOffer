@@ -354,12 +354,14 @@ export interface CompleteGrandSlamOffer {
 
 // Request type for complete offer generation
 export interface CompleteOfferRequest {
+  offerId: string // Required for all generations
   businessContext: {
     businessDescription: string
   }
   userTier: 'free' | 'pro'
   generateComplete?: boolean // For pro users
   componentName?: string // Optional component name for individual component unlocking
+  isRegeneration?: boolean // Whether this is a regeneration
 }
 
 export const COMPONENT_NAMES = {

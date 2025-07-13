@@ -87,6 +87,8 @@ export const authOptions: NextAuthOptions = {
               credits_remaining: 3,
               total_offers_generated: 0,
               daily_generation_count: 0,
+              generations_today: 0, // Add this field for manual testing compatibility
+              daily_limit: 1, // Free tier daily limit
               purchased_offers_count: 0,
               created_at: new Date(),
               updated_at: new Date(),

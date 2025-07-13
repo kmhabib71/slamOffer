@@ -204,16 +204,49 @@ export async function POST(request: Request) {
       )
     }
 
-    // Save the generation result
+    // Save the generation result based on user tier
     try {
-      if (isRegeneration) {
-        // For regenerations, update the existing offer
-        await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
-        console.log('Saved regenerated offer')
+      if (userProfile.subscription_tier === 'free') {
+        // Free tier: Save to grand_slam_offers collection (no purchase record)
+        const { saveGrandSlamOffer } = await import('@/lib/offers')
+        const saveResult = await saveGrandSlamOffer(userId, completeOffer, 'free')
+        if (!saveResult.success) {
+          throw new Error(saveResult.error || 'Failed to save free offer')
+        }
+        console.log('Saved free tier offer to grand_slam_offers')
+        
+        // Update user stats for free tier
+        try {
+          await authService.updateUserProfile(userId, {
+            total_offers_generated: (userProfile.total_offers_generated || 0) + 1,
+            last_generation_date: new Date(),
+          })
+          console.log('Updated user stats for free tier generation')
+        } catch (statsError) {
+          console.error('Error updating user stats:', statsError)
+          // Don't fail the whole operation for stats update failure
+        }
       } else {
-        // For new generations, save as new offer
-        await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
-        console.log('Saved new generated offer')
+        // Paid tier: Save to purchased_offers collection
+        if (isRegeneration) {
+          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+          console.log('Saved regenerated offer')
+        } else {
+          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+          console.log('Saved paid tier offer')
+          
+          // Update user stats for paid tier
+          try {
+            await authService.updateUserProfile(userId, {
+              total_offers_generated: (userProfile.total_offers_generated || 0) + 1,
+              last_generation_date: new Date(),
+            })
+            console.log('Updated user stats for paid tier generation')
+          } catch (statsError) {
+            console.error('Error updating user stats:', statsError)
+            // Don't fail the whole operation for stats update failure
+          }
+        }
       }
     } catch (error) {
       console.error('Error saving offer:', error)
