@@ -9,7 +9,13 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(kill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install)",
+      "Bash(npx next dev:*)",
+      "Bash(lsof:*)",
+      "Bash(npx next build:*)",
+      "Bash(timeout 30s npm run dev)"
     ],
     "deny": []
   }

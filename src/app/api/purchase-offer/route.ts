@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
-import { generateCompleteGrandSlamOffer } from '@/lib/openai'
+import { generateCompleteGrandSlamOffer, generatePreview } from '@/lib/openai'
 import { authService, dbHelpers } from '@/lib/auth'
 import { emailService } from '@/lib/email-service'
 import clientPromise from '@/lib/mongodb'
@@ -39,7 +39,6 @@ export async function POST(request: Request) {
       businessContext,
       generateComplete = true,
       userTier,
-      componentName,
       isRegeneration = false,
     } = body
 
@@ -50,8 +49,6 @@ export async function POST(request: Request) {
       businessContext: businessContext ? 'present' : 'missing',
       generateComplete,
       userTier,
-      componentName,
-      isRegeneration,
     })
 
     if (!offerId || !businessContext) {
@@ -196,15 +193,60 @@ export async function POST(request: Request) {
     // Generate the offer
     let completeOffer
     try {
-      console.log('🎯 ROUTE: purchase-offer - About to call generateCompleteGrandSlamOffer')
-      console.log('📊 User:', userId, 'Offer:', offerId, 'Tier:', generationTier)
+      if (generationTier === 'free') {
+        console.log('🎯 ROUTE: purchase-offer - About to call generatePreview (FREE user)')
+        console.log('📊 User:', userId, 'Offer:', offerId, 'Tier:', generationTier)
 
-      completeOffer = await generateCompleteGrandSlamOffer({
-        businessContext: finalBusinessContext,
-        userTier: generationTier,
-        generateComplete: generationTier !== 'free', // Free users get limited content
-        offerId: offerId,
-      })
+        // For free users, use the preview generation function
+        const previewData = await generatePreview({
+          businessDescription: finalBusinessContext.businessDescription
+        })
+
+        // Convert preview format to complete offer format for consistency
+        const components = Object.entries(previewData).map(([componentId, data]) => ({
+          componentId: parseInt(componentId) as any,
+          componentName: data.componentName,
+          description: `Preview of ${data.componentName}`,
+          items: data.previewItems.map((item: any, index: number) => ({
+            id: `${componentId}-${index + 1}`,
+            title: item.title,
+            description: item.description,
+            value: item.value,
+            category: 'core',
+            priority: 'medium' as const,
+            order: index + 1,
+          })),
+          totalValue: `$${data.previewItems.length * 1000}`, // Estimate value
+          isLocked: true,
+          previewCount: data.previewItems.length,
+          totalAvailable: data.totalItemsAvailable,
+          conversionMessage: data.unlockCTA,
+        }))
+
+        completeOffer = {
+          _id: `offer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any,
+          user_id: 'temp-user' as any,
+          businessContext: finalBusinessContext,
+          components,
+          totalOfferValue: '$100,000+',
+          createdAt: new Date(),
+          metadata: {
+            tokenUsage: 0,
+            generationTime: 0,
+            model: 'gpt-4o-mini-preview',
+          },
+        }
+      } else {
+        console.log('🎯 ROUTE: purchase-offer - About to call generateCompleteGrandSlamOffer (PAID user)')
+        console.log('📊 User:', userId, 'Offer:', offerId, 'Tier:', generationTier)
+
+        completeOffer = await generateCompleteGrandSlamOffer({
+          businessContext: finalBusinessContext,
+          userTier: generationTier,
+          generateComplete: generationTier !== 'free', // Free users get limited content
+          offerId: offerId,
+        })
+      }
 
       console.log('AI generation completed successfully')
     } catch (error) {
@@ -267,10 +309,10 @@ export async function POST(request: Request) {
       } else {
         // Paid tier: Save to purchased_offers collection
         if (isRegeneration) {
-          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer)
           console.log('Saved regenerated offer')
         } else {
-          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer, componentName)
+          await dbHelpers.savePurchasedOffer(userId, offerId, completeOffer)
           console.log('Saved paid tier offer')
           
           // Update user stats for paid tier

@@ -144,7 +144,6 @@
 - [ ] **Verify upgrade:**
   - [ ] `subscription_tier: "starter_spark"`
   - [ ] Credits preserved + 1 new
-  - [ ] `regeneration_count: 2`
   - [ ] No duplicate profiles
 
 **Result:** ✅ PASS / ❌ FAIL  
@@ -180,23 +179,20 @@
   - [ ] User should have 1 credit for new offer generation
   - [ ] Credit should be consumed when purchasing full offer from free preview (unlock button)
   - [ ] After unlock purchase, user should have 0 credits for new generations
-  - [ ] 2 regenerations should be separate from credits (not displayed as credits in dashboard)
-  - [ ] Dashboard should show "0 credits" for new offers, not "2 credits"
+  - [ ] Dashboard should show "0 credits" for new offers after using credit
 
 - [ ] **Growth Engine Plan Validation:**
   - [ ] User should have 10 credits for new offer generation
   - [ ] Credits should only be used for new complete offers
-  - [ ] No regeneration feature for this tier
 
 - [ ] **Agency Arsenal Plan Validation:**
-  - [ ] User should have 50 credits for new offer generation
+  - [ ] User should have 30 credits for new offer generation
   - [ ] Credits should only be used for new complete offers
-  - [ ] No regeneration feature for this tier
 
-- [ ] **Credit vs Regeneration Distinction:**
+- [ ] **Credit System Validation:**
   - [ ] Credits = for new offer generation from scratch
-  - [ ] Regenerations = for re-creating existing offers (Starter Spark only)
-  - [ ] Dashboard should clearly distinguish between these two
+  - [ ] Dashboard should clearly show available credits
+  - [ ] Credit deduction should be atomic and accurate
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
@@ -260,73 +256,9 @@
 
 ---
 
-## Phase 6: Regeneration System Testing
+## Phase 6: Database Integrity Testing
 
-### Test 6.1: Starter Spark Regeneration Button Placement
-
-- [ ] **Regeneration Button Location:**
-  - [ ] Login as Starter Spark user with generated offer
-  - [ ] Navigate to full generated offer view
-  - [ ] Verify "Regenerate" button appears AFTER "Export PDF" button
-  - [ ] Button should only appear for Starter Spark users
-  - [ ] Button should only appear on full offers (not free previews)
-
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** \***\*\_\_\_\*\***
-
-### Test 6.2: Regeneration Functionality
-
-- [ ] **Regeneration Process:**
-  - [ ] Click "Regenerate" button on full offer
-  - [ ] Verify same business context/input is used
-  - [ ] Verify NO credit is deducted from user account
-  - [ ] Verify regeneration count decremented (2 → 1)
-  - [ ] Verify new content generated with different variations
-  - [ ] Verify offer ID remains the same
-  - [ ] Verify URL /offer/:id remains unchanged
-
-- [ ] **Dashboard Display:**
-  - [ ] Dashboard should NOT show regenerations as credits
-  - [ ] Should clearly separate "Credits for new offers" vs "Regenerations available"
-  - [ ] If user has 0 credits and 1 regeneration, dashboard should show "0 credits" not "1 credit"
-
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** \***\*\_\_\_\*\***
-
-### Test 6.3: Regeneration Limit Testing
-
-- [ ] **Use All Regenerations:**
-  - [ ] Use first regeneration (2 → 1)
-  - [ ] Use second regeneration (1 → 0)
-  - [ ] Verify "Regenerate" button becomes disabled
-  - [ ] Verify count shows 0 regenerations remaining
-  - [ ] Try to click disabled button - should show appropriate message
-
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** \***\*\_\_\_\*\***
-
-### Test 6.4: Higher Tier Regeneration Verification
-
-- [ ] **Growth Engine Users:**
-  - [ ] Login as Growth Engine user
-  - [ ] Generate full offer
-  - [ ] Verify NO regeneration button appears
-  - [ ] Verify no regeneration count in profile
-
-- [ ] **Agency Arsenal Users:**
-  - [ ] Login as Agency Arsenal user
-  - [ ] Generate full offer
-  - [ ] Verify NO regeneration button appears
-  - [ ] Verify no regeneration count in profile
-
-**Result:** ✅ PASS / ❌ FAIL  
-**Notes:** \***\*\_\_\_\*\***
-
----
-
-## Phase 7: Database Integrity Testing
-
-### Test 7.1: Concurrent Operations
+### Test 6.1: Concurrent Operations
 
 - [ ] Open multiple browser tabs
 - [ ] Login as same user
@@ -336,14 +268,14 @@
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 7.2: Data Consistency
+### Test 6.2: Data Consistency
 
 - [ ] Check database directly:
   - [ ] No negative credits
   - [ ] Proper tier assignments
   - [ ] Accurate generation counts
   - [ ] Valid timestamps
-  - [ ] Regeneration counts separate from credits
+  - [ ] Accurate generation counts
   - [ ] Proper subscription_tier values
 
 **Result:** ✅ PASS / ❌ FAIL  
@@ -351,9 +283,9 @@
 
 ---
 
-## Phase 8: UI/UX Testing
+## Phase 7: UI/UX Testing
 
-### Test 8.1: Tier-Specific UI
+### Test 7.1: Tier-Specific UI
 
 - [ ] **Free:** 
   - [ ] Basic features, upgrade prompts
@@ -361,24 +293,24 @@
   - [ ] Credit display shows correctly
 
 - [ ] **Starter Spark:** 
-  - [ ] Regeneration buttons ONLY after Export PDF
-  - [ ] Credit display separate from regeneration count
-  - [ ] Shows "X credits for new offers" and "X regenerations available"
+  - [ ] Single offer interface
+  - [ ] Credit display shows available credits
+  - [ ] Shows "X credits for new offers"
 
 - [ ] **Growth Engine:** 
-  - [ ] Full features, no regeneration buttons
-  - [ ] High credit display
-  - [ ] No regeneration UI elements
+  - [ ] Full features, multiple offers
+  - [ ] High credit display (10 credits)
+  - [ ] Complete offer generation UI
 
 - [ ] **Agency Arsenal:** 
-  - [ ] Full features, no regeneration buttons
-  - [ ] Highest credit display
-  - [ ] No regeneration UI elements
+  - [ ] Full features, multiple offers
+  - [ ] Highest credit display (30 credits)
+  - [ ] Complete offer generation UI
 
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 8.2: Real-Time Updates
+### Test 7.2: Real-Time Updates
 
 - [ ] Keep dashboard open
 - [ ] Perform operations in another tab
@@ -388,7 +320,7 @@
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 8.3: Mobile Responsiveness
+### Test 7.3: Mobile Responsiveness
 
 - [ ] Test on mobile device
 - [ ] Verify all features work
@@ -400,9 +332,9 @@
 
 ---
 
-## Phase 9: Performance Testing
+## Phase 8: Performance Testing
 
-### Test 9.1: Load Testing
+### Test 8.1: Load Testing
 
 - [ ] Create multiple test users
 - [ ] Simulate concurrent operations
@@ -411,7 +343,7 @@
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 9.2: Generation Speed
+### Test 8.2: Generation Speed
 
 - [ ] Time generation processes
 - [ ] Verify reasonable completion times
@@ -422,9 +354,9 @@
 
 ---
 
-## Phase 10: Error Handling Testing
+## Phase 9: Error Handling Testing
 
-### Test 10.1: Network Failures
+### Test 9.1: Network Failures
 
 - [ ] Simulate network interruptions
 - [ ] Test offline/online scenarios
@@ -433,7 +365,7 @@
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 10.2: Invalid Data
+### Test 9.2: Invalid Data
 
 - [ ] Submit invalid form data
 - [ ] Test edge cases
@@ -444,9 +376,9 @@
 
 ---
 
-## Phase 11: Security Testing
+## Phase 10: Security Testing
 
-### Test 11.1: Authentication Security
+### Test 10.1: Authentication Security
 
 - [ ] Test unauthorized access attempts
 - [ ] Verify session management
@@ -455,7 +387,7 @@
 **Result:** ✅ PASS / ❌ FAIL  
 **Notes:** \***\*\_\_\_\*\***
 
-### Test 11.2: Data Protection
+### Test 10.2: Data Protection
 
 - [ ] Verify user data isolation
 - [ ] Test API endpoint security
@@ -468,7 +400,7 @@
 
 ## Final Summary
 
-**Total Tests:** **\_** / 25  
+**Total Tests:** **\_** / 20  
 **Passed:** **\_**  
 **Failed:** **\_**  
 **Overall Status:** ✅ READY FOR PRODUCTION / ❌ NEEDS FIXES

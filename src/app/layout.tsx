@@ -63,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans antialiased  min-h-screen text-white`}
+        className={`${inter.variable} font-sans antialiased min-h-screen`}
         suppressHydrationWarning
       >
         <SessionProviderWrapper>

@@ -32,7 +32,7 @@ Create a SaaS application that generates complete business offers using Alex Hor
 | Tier | Price | Credits | Features |
 |------|-------|---------|----------|
 | **Free** | $0 | 3 total, 1/day | Basic preview (3 items/component) |
-| **Starter Spark** | $9 | 1 + 2 regenerations | Complete offer + variations |
+| **Starter Spark** | $9 | 1 | Single complete offer |
 | **Growth Engine** | $47 | 10 | Multiple complete offers |
 | **Agency Arsenal** | $99 | 30 | High-volume for agencies |
 
@@ -89,7 +89,7 @@ Create a SaaS application that generates complete business offers using Alex Hor
 
 ### **Feature Priority Framework:**
 1. **Must Have:** Core offer generation, basic auth, payment processing
-2. **Should Have:** Background jobs, PDF export, regeneration system
+2. **Should Have:** Background jobs, PDF export
 3. **Could Have:** Advanced analytics, team features, integrations
 4. **Won't Have (for now):** Complex admin panels, multi-language support
 
@@ -107,18 +107,17 @@ Create a SaaS application that generates complete business offers using Alex Hor
 - **Purpose:** Hook users with immediate value, drive upgrades
 - **Limitations:** 3 total credits, 1 per day, preview-only content
 - **Experience:** High-quality preview with clear upgrade benefits
-- **Constraints:** Daily limits reset at midnight, no regenerations
+- **Constraints:** Daily limits reset at midnight
 
 ### **Starter Spark ($9):**
 - **Purpose:** Entry-level paid tier for individual entrepreneurs
-- **Special Rule:** 2 regenerations with SAME business prompt only
-- **Experience:** Complete offer + variations without editing
-- **Constraints:** No new prompt editing for regenerations
+- **Experience:** Single complete offer generation
+- **Constraints:** One offer per purchase
 
 ### **Growth Engine ($47) & Agency Arsenal ($99):**
 - **Purpose:** High-volume users and agencies
 - **Experience:** Full flexibility, multiple offers, all features
-- **No Regenerations:** Focus on new offer creation instead
+- **Focus:** Multiple new offer creation
 
 ### **Credit Management Rules:**
 1. **Atomic Deduction:** Credits deducted only after successful generation

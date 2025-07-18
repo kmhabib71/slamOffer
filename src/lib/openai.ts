@@ -68,7 +68,7 @@ export async function generatePreview(businessContext: {
   console.log('📊 Expected tokens: 5,000 MAX')
   console.log('🎯 Function: generatePreview (ALL 11 components preview)')
   console.log('📝 Business context length:', businessContext.businessDescription?.length || 0)
-  
+
   try {
     // Single optimized prompt for all 11 components with 3 items each (max 5000 tokens)
     const batchPrompt = `Generate a comprehensive Grand Slam Offer preview for this business:
@@ -190,7 +190,9 @@ Format as JSON with this exact structure:
 
     console.log('⚡ Making OpenAI API call...')
     const startTime = Date.now()
-    
+    console.log('before offer generation - businessContext:', businessContext)
+
+    console.log('after offer generation')
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini', // Cost-efficient model for previews
       messages: [
@@ -204,6 +206,41 @@ Format as JSON with this exact structure:
       response_format: { type: 'json_object' },
       max_tokens: 5000, // Maximum allowed for high-value preview
     })
+    // const completion = {
+    //   choices: [
+    //     {
+    //       message: {
+    //         content: JSON.stringify({
+    //           components: {
+    //             '1': {
+    //               componentName: 'Dream Outcome Identification',
+    //               previewItems: [
+    //                 {
+    //                   title: 'Achieve 6-Figure Revenue',
+    //                   description: 'Transform your business to hit $100K+ annually',
+    //                   value: '$5,000',
+    //                 },
+    //                 {
+    //                   title: 'Double Your Client Base',
+    //                   description: 'Grow from 50 to 100 clients in 6 months',
+    //                   value: '$3,000',
+    //                 },
+    //                 {
+    //                   title: 'Launch New Product Line',
+    //                   description: 'Expand offerings with a new service or product',
+    //                   value: '$4,000',
+    //                 },
+    //               ],
+    //               totalItemsAvailable: 12,
+    //               unlockCTA: 'Unlock more dream outcomes →',
+    //             },
+    //             // ... other components with similar structure
+    //           },
+    //         }),
+    //       },
+    //     },
+    //   ],
+    // }
 
     const endTime = Date.now()
     console.log('✅ OPENAI REQUEST COMPLETE - generatePreview')
@@ -212,9 +249,9 @@ Format as JSON with this exact structure:
     console.log('📊 Token breakdown:', {
       prompt: completion.usage?.prompt_tokens || 'unknown',
       completion: completion.usage?.completion_tokens || 'unknown',
-      total: completion.usage?.total_tokens || 'unknown'
+      total: completion.usage?.total_tokens || 'unknown',
     })
-    
+
     // Track this request globally
     trackOpenAIRequest('generatePreview', completion.usage?.total_tokens || 0)
 
@@ -268,13 +305,29 @@ export async function generateCompleteGrandSlamOffer(
   console.log('👤 User tier:', userTier)
   console.log('🎯 Generate complete:', generateComplete)
   console.log('📝 Business context length:', businessContext.businessDescription?.length || 0)
+  //stop execution before making api call to test the function by something like returning a mock response
+  // add return and stop  next code execution
 
   try {
     const isProUser = userTier === 'pro' && generateComplete
-    
+
     console.log('🔥 Is Pro User:', isProUser)
     console.log('📊 Expected tokens:', isProUser ? '16,000 MAX' : '4,000 MAX')
-
+    console.log('before offer generation - businessContext:', businessContext)
+    return {
+      _id: `offer-mock-${Date.now()}`,
+      user_id: 'mock-user',
+      businessContext,
+      components: [],
+      totalOfferValue: '$100,000+',
+      createdAt: new Date(),
+      metadata: {
+        tokenUsage: 0,
+        generationTime: 0,
+        model: 'mock',
+      },
+    }
+    console.log('after offer generation')
     // Generate dynamic item counts for variation - AI will choose between 30-50 for problems and solutions
     const generateDynamicCount = (min: number, max: number) =>
       Math.floor(Math.random() * (max - min + 1)) + min
@@ -617,7 +670,7 @@ Format as JSON with this EXACT structure:
 }`
 
     const startTime = Date.now()
-    
+
     console.log('⚡ Making OpenAI API call for COMPLETE offer generation...')
     console.log('🎯 Generation mode:', isProUser ? 'COMPREHENSIVE PRO' : 'PREVIEW FREE')
     console.log('📏 Max tokens allowed:', isProUser ? 16000 : 4000)
@@ -647,17 +700,17 @@ Format as JSON with this EXACT structure:
     }
 
     const endTime = Date.now()
-    
+
     console.log('✅ OPENAI REQUEST COMPLETE - generateCompleteGrandSlamOffer')
     console.log('🎯 Actual tokens used:', completion.usage?.total_tokens || 'unknown')
     console.log('⏱️ Request duration:', endTime - startTime, 'ms')
     console.log('📊 Token breakdown:', {
       prompt: completion.usage?.prompt_tokens || 'unknown',
       completion: completion.usage?.completion_tokens || 'unknown',
-      total: completion.usage?.total_tokens || 'unknown'
+      total: completion.usage?.total_tokens || 'unknown',
     })
     console.log('🎯 Generation type:', isProUser ? 'PRO (Full offer)' : 'FREE (Preview)')
-    
+
     // Track this request globally
     trackOpenAIRequest('generateCompleteGrandSlamOffer', completion.usage?.total_tokens || 0)
 

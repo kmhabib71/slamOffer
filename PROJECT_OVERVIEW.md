@@ -188,10 +188,27 @@ Grand-offer/
 ### User Journey (Simplified & Magical)
 
 1. **Instant Hook**: One-click demo showing AI magic in action
-2. **Minimal Input**: Single form with 3-5 essential fields only
-3. **AI Magic**: Generate complete offer through enhanced 5-component framework
-4. **Premium Reveal**: Multiple view modes with magical animations
+2. **Minimal Input**: Single form with business description only
+3. **AI Magic**: Generate preview (free) or complete offer (paid) through 11-component framework
+4. **Premium Reveal**: Multiple view modes with magical animations and unlock options
 5. **Export & Scale**: Professional outputs that drive real results
+
+### Detailed User Flow by Tier
+
+#### **Free Users (Dashboard)**
+```
+Business Input → Credit Check → generatePreview() → 3 items per component → Unlock prompts
+```
+
+#### **Paid Users (Dashboard)**
+```
+Business Input → Credit Check → generateCompleteGrandSlamOffer() → Full offer → Export options
+```
+
+#### **Unlock Purchase Flow**
+```
+Free Preview → Purchase Modal → Payment → generateCompleteGrandSlamOffer() → Full offer
+```
 
 ### UI/UX Design Philosophy
 
